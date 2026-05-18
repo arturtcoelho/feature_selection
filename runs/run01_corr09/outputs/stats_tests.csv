@@ -1,0 +1,181 @@
+dataset,model,k_pct,comparison,statistic,p_value,p_value_corrected,significant
+Bike Sharing,extratrees,0.25,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,extratrees,0.25,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,extratrees,0.25,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,extratrees,0.25,shap_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,extratrees,0.25,shap_vs_tree,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,extratrees,0.5,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,extratrees,0.5,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,extratrees,0.5,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,extratrees,0.5,shap_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,extratrees,0.5,shap_vs_tree,109.0,1.9077969426462005e-08,5.283129995020248e-08,True
+Bike Sharing,extratrees,0.75,mi_vs_baseline100,1.0,3.552713678800501e-15,1.3901923090958484e-14,True
+Bike Sharing,extratrees,0.75,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,extratrees,0.75,tree_vs_baseline100,193.0,5.6804637029728156e-06,1.2942828690317807e-05,True
+Bike Sharing,extratrees,0.75,shap_vs_baseline100,138.0,1.7394549622906652e-07,4.604439606063526e-07,True
+Bike Sharing,extratrees,0.75,shap_vs_tree,542.0,0.3622430237473182,0.5388739196241097,False
+Bike Sharing,extratrees,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,extratrees,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,extratrees,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,extratrees,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,extratrees,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Bike Sharing,ridge,0.25,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,ridge,0.25,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,ridge,0.25,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,ridge,0.25,shap_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,ridge,0.25,shap_vs_tree,9.0,5.861977570020827e-14,1.9539925233402755e-13,True
+Bike Sharing,ridge,0.5,mi_vs_baseline100,95.0,5.802245794939154e-09,1.6845229727242705e-08,True
+Bike Sharing,ridge,0.5,rfe_vs_baseline100,158.0,6.78354924232849e-07,1.6280518181588376e-06,True
+Bike Sharing,ridge,0.5,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,ridge,0.5,shap_vs_baseline100,13.0,1.5631940186722204e-13,5.115907697472721e-13,True
+Bike Sharing,ridge,0.5,shap_vs_tree,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,ridge,0.75,mi_vs_baseline100,156.0,5.951474850718341e-07,1.4878687126795853e-06,True
+Bike Sharing,ridge,0.75,rfe_vs_baseline100,432.0,0.04719429796794117,0.08168243879066742,False
+Bike Sharing,ridge,0.75,tree_vs_baseline100,182.0,3.006746544187422e-06,7.121241815180736e-06,True
+Bike Sharing,ridge,0.75,shap_vs_baseline100,138.0,1.7394549622906652e-07,4.604439606063526e-07,True
+Bike Sharing,ridge,0.75,shap_vs_tree,456.0,0.3559060735869012,0.5338591103803518,False
+Bike Sharing,ridge,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,ridge,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,ridge,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,ridge,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,ridge,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Bike Sharing,xgboost,0.25,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,xgboost,0.25,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,xgboost,0.25,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,xgboost,0.25,shap_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,xgboost,0.25,shap_vs_tree,16.0,3.0020430585864233e-13,9.649424116884931e-13,True
+Bike Sharing,xgboost,0.5,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,xgboost,0.5,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,xgboost,0.5,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,xgboost,0.5,shap_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,xgboost,0.5,shap_vs_tree,256.0,0.0001362867761987019,0.00028860729077372164,True
+Bike Sharing,xgboost,0.75,mi_vs_baseline100,3.0,8.881784197001252e-15,3.401534373319628e-14,True
+Bike Sharing,xgboost,0.75,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Bike Sharing,xgboost,0.75,tree_vs_baseline100,336.0,0.003099259960384515,0.005934753115629922,True
+Bike Sharing,xgboost,0.75,shap_vs_baseline100,271.0,0.0002624791416003802,0.0005249582832007604,True
+Bike Sharing,xgboost,0.75,shap_vs_tree,403.5,0.28559233061898925,0.4356493178933734,False
+Bike Sharing,xgboost,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,xgboost,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,xgboost,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,xgboost,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,xgboost,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Communities and Crime,extratrees,0.25,mi_vs_baseline100,292.0,0.0006207713421488847,0.001227899358096695,True
+Communities and Crime,extratrees,0.25,rfe_vs_baseline100,215.0,1.8759072675678112e-05,4.168682816817358e-05,True
+Communities and Crime,extratrees,0.25,tree_vs_baseline100,385.0,0.01407853473248366,0.02585853318211285,True
+Communities and Crime,extratrees,0.25,shap_vs_baseline100,477.0,0.12316903051698347,0.19973356300051373,False
+Communities and Crime,extratrees,0.25,shap_vs_tree,254.0,0.00012454807471407037,0.00026688873153015076,True
+Communities and Crime,extratrees,0.5,mi_vs_baseline100,556.0,0.4375680954084249,0.6300980573881318,False
+Communities and Crime,extratrees,0.5,rfe_vs_baseline100,457.0,0.08226751834101265,0.13839395608768482,False
+Communities and Crime,extratrees,0.5,tree_vs_baseline100,433.0,0.04830953815983641,0.08281635113114812,False
+Communities and Crime,extratrees,0.5,shap_vs_baseline100,609.0,0.7887529519630228,1.0,False
+Communities and Crime,extratrees,0.5,shap_vs_tree,520.0,0.26120880915335754,0.4053240142034858,False
+Communities and Crime,extratrees,0.75,mi_vs_baseline100,379.0,0.01186723909238907,0.022021680790000338,True
+Communities and Crime,extratrees,0.75,rfe_vs_baseline100,501.0,0.19095974436218555,0.3041836635857823,False
+Communities and Crime,extratrees,0.75,tree_vs_baseline100,415.0,0.031261656763490464,0.05516762958263023,False
+Communities and Crime,extratrees,0.75,shap_vs_baseline100,373.0,0.009964281765361349,0.01868302831005253,True
+Communities and Crime,extratrees,0.75,shap_vs_tree,628.0,0.9313837099567692,1.0,False
+Communities and Crime,extratrees,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,extratrees,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,extratrees,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,extratrees,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,extratrees,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Communities and Crime,ridge,0.25,mi_vs_baseline100,240.0,6.508990648690371e-05,0.00014115883334509237,True
+Communities and Crime,ridge,0.25,rfe_vs_baseline100,270.0,0.000251529064962952,0.0005087104684643974,True
+Communities and Crime,ridge,0.25,tree_vs_baseline100,265.0,0.000202796732962085,0.0004195794475077621,True
+Communities and Crime,ridge,0.25,shap_vs_baseline100,40.0,1.5448975432263978e-11,4.7132467420466373e-11,True
+Communities and Crime,ridge,0.25,shap_vs_tree,101.0,9.772863407420118e-09,2.7922466878343196e-08,True
+Communities and Crime,ridge,0.5,mi_vs_baseline100,142.0,2.305757291765076e-07,5.845581866446672e-07,True
+Communities and Crime,ridge,0.5,rfe_vs_baseline100,477.0,0.12316903051698347,0.19973356300051373,False
+Communities and Crime,ridge,0.5,tree_vs_baseline100,229.0,3.818192634774675e-05,8.381398466578556e-05,True
+Communities and Crime,ridge,0.5,shap_vs_baseline100,190.0,4.788532343980023e-06,1.1193971713200055e-05,True
+Communities and Crime,ridge,0.5,shap_vs_tree,416.0,0.03205348601661129,0.05601580080572847,False
+Communities and Crime,ridge,0.75,mi_vs_baseline100,370.0,0.009116960633276605,0.017274241199892515,True
+Communities and Crime,ridge,0.75,rfe_vs_baseline100,495.0,0.17191424676435396,0.276290753728426,False
+Communities and Crime,ridge,0.75,tree_vs_baseline100,412.0,0.02898427633581413,0.05165514594501528,False
+Communities and Crime,ridge,0.75,shap_vs_baseline100,259.0,0.00015581408102782746,0.00032612249517452257,True
+Communities and Crime,ridge,0.75,shap_vs_tree,474.0,0.11619549807268115,0.19188247388149182,False
+Communities and Crime,ridge,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,ridge,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,ridge,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,ridge,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,ridge,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Communities and Crime,xgboost,0.25,mi_vs_baseline100,409.0,0.026848578410895385,0.04832744113961169,True
+Communities and Crime,xgboost,0.25,rfe_vs_baseline100,268.0,0.0002308749851795966,0.00047224428786735666,True
+Communities and Crime,xgboost,0.25,tree_vs_baseline100,321.0,0.0018425334424101436,0.0035661937595035035,True
+Communities and Crime,xgboost,0.25,shap_vs_baseline100,320.0,0.0017779629774352657,0.0034786232167211724,True
+Communities and Crime,xgboost,0.25,shap_vs_tree,590.0,0.652772195247282,0.925188938145754,False
+Communities and Crime,xgboost,0.5,mi_vs_baseline100,626.0,0.916185835362695,1.0,False
+Communities and Crime,xgboost,0.5,rfe_vs_baseline100,443.0,0.060701401498306495,0.10307785160089782,False
+Communities and Crime,xgboost,0.5,tree_vs_baseline100,602.0,0.7376605378038441,1.0,False
+Communities and Crime,xgboost,0.5,shap_vs_baseline100,584.0,0.6118509675549912,0.8740728107928447,False
+Communities and Crime,xgboost,0.5,shap_vs_tree,601.0,0.7304479390240814,1.0,False
+Communities and Crime,xgboost,0.75,mi_vs_baseline100,554.0,0.4262959591146398,0.6188167148438319,False
+Communities and Crime,xgboost,0.75,rfe_vs_baseline100,548.0,0.39349457563481494,0.5758457204411925,False
+Communities and Crime,xgboost,0.75,tree_vs_baseline100,543.0,0.3673427625704484,0.5419811251039403,False
+Communities and Crime,xgboost,0.75,shap_vs_baseline100,635.0,0.9847343420165711,1.0,False
+Communities and Crime,xgboost,0.75,shap_vs_tree,528.0,0.2954728324166016,0.4469336960923386,False
+Communities and Crime,xgboost,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,xgboost,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,xgboost,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,xgboost,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,xgboost,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Superconductor,extratrees,0.25,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,extratrees,0.25,rfe_vs_baseline100,157.0,6.354784893858323e-07,1.5457584876952679e-06,True
+Superconductor,extratrees,0.25,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,extratrees,0.25,shap_vs_baseline100,44.0,2.630606843467831e-11,7.891820530403493e-11,True
+Superconductor,extratrees,0.25,shap_vs_tree,192.0,5.367254770405339e-06,1.2385972547089243e-05,True
+Superconductor,extratrees,0.5,mi_vs_baseline100,6.0,2.4868995751603507e-14,8.608498529401215e-14,True
+Superconductor,extratrees,0.5,rfe_vs_baseline100,35.0,7.65609797781508e-12,2.376030406908128e-11,True
+Superconductor,extratrees,0.5,tree_vs_baseline100,5.0,1.7763568394002505e-14,6.394884621840902e-14,True
+Superconductor,extratrees,0.5,shap_vs_baseline100,106.0,1.4895306321704993e-08,4.189304902979529e-08,True
+Superconductor,extratrees,0.5,shap_vs_tree,473.0,0.11393994202132163,0.1898999033688694,False
+Superconductor,extratrees,0.75,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,extratrees,0.75,rfe_vs_baseline100,4.0,1.2434497875801753e-14,4.5677747298863585e-14,True
+Superconductor,extratrees,0.75,tree_vs_baseline100,197.0,7.111603951059919e-06,1.600110888988482e-05,True
+Superconductor,extratrees,0.75,shap_vs_baseline100,157.0,6.354784893858323e-07,1.5457584876952679e-06,True
+Superconductor,extratrees,0.75,shap_vs_tree,516.0,0.24513084584396871,0.38368306306012495,False
+Superconductor,extratrees,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,extratrees,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,extratrees,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,extratrees,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,extratrees,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Superconductor,ridge,0.25,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.25,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.25,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.25,shap_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.25,shap_vs_tree,142.0,2.305757291765076e-07,5.845581866446672e-07,True
+Superconductor,ridge,0.5,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.5,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.5,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.5,shap_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.5,shap_vs_tree,509.0,0.21866240175859453,0.3452564238293598,False
+Superconductor,ridge,0.75,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.75,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.75,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.75,shap_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,ridge,0.75,shap_vs_tree,407.0,0.025500083179634814,0.04636378759933602,True
+Superconductor,ridge,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,ridge,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,ridge,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,ridge,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,ridge,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Superconductor,xgboost,0.25,mi_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,xgboost,0.25,rfe_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,xgboost,0.25,tree_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,xgboost,0.25,shap_vs_baseline100,0.0,1.7763568394002505e-15,7.266914343001024e-15,True
+Superconductor,xgboost,0.25,shap_vs_tree,523.0,0.27372721377670217,0.4211187904256956,False
+Superconductor,xgboost,0.5,mi_vs_baseline100,4.0,1.2434497875801753e-14,4.5677747298863585e-14,True
+Superconductor,xgboost,0.5,rfe_vs_baseline100,1.0,3.552713678800501e-15,1.3901923090958484e-14,True
+Superconductor,xgboost,0.5,tree_vs_baseline100,26.0,1.8989254613188677e-12,5.99660671995432e-12,True
+Superconductor,xgboost,0.5,shap_vs_baseline100,46.0,3.40367733997482e-11,1.0043638052384714e-10,True
+Superconductor,xgboost,0.5,shap_vs_tree,633.0,0.969474172425139,1.0,False
+Superconductor,xgboost,0.75,mi_vs_baseline100,7.0,3.375077994860476e-14,1.1462529039148785e-13,True
+Superconductor,xgboost,0.75,rfe_vs_baseline100,6.0,2.4868995751603507e-14,8.608498529401215e-14,True
+Superconductor,xgboost,0.75,tree_vs_baseline100,142.0,2.305757291765076e-07,5.845581866446672e-07,True
+Superconductor,xgboost,0.75,shap_vs_baseline100,118.0,3.918623114884667e-08,1.0687153949685457e-07,True
+Superconductor,xgboost,0.75,shap_vs_tree,613.0,0.81837027658068,1.0,False
+Superconductor,xgboost,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,xgboost,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,xgboost,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,xgboost,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,xgboost,1.0,shap_vs_tree,0.0,1.0,1.0,False
