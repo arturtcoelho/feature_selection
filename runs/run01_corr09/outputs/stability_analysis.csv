@@ -1,49 +1,25 @@
 dataset,strategy,k_pct,mean_jaccard_to_majority
-Bike Sharing,mi,0.25,0.88
-Bike Sharing,mi,0.5,0.9314285714285715
-Bike Sharing,mi,0.75,0.8550909090909093
-Bike Sharing,mi,1.0,1.0
-Bike Sharing,rfe,0.25,1.0
-Bike Sharing,rfe,0.5,1.0
-Bike Sharing,rfe,0.75,0.9959999999999999
-Bike Sharing,rfe,1.0,1.0
-Bike Sharing,shap,0.25,0.8593333333333334
-Bike Sharing,shap,0.5,0.8080952380952382
-Bike Sharing,shap,0.75,0.8872727272727273
-Bike Sharing,shap,1.0,1.0
-Bike Sharing,tree,0.25,0.83
-Bike Sharing,tree,0.5,0.92
-Bike Sharing,tree,0.75,0.9520000000000001
-Bike Sharing,tree,1.0,1.0
-Communities and Crime,mi,0.25,0.8773441595441595
-Communities and Crime,mi,0.5,0.8943401482802149
-Communities and Crime,mi,0.75,0.9353560622630276
-Communities and Crime,mi,1.0,1.0
-Communities and Crime,rfe,0.25,0.7720841244714993
-Communities and Crime,rfe,0.5,0.8134208959046271
-Communities and Crime,rfe,0.75,0.9132630275795602
-Communities and Crime,rfe,1.0,1.0
-Communities and Crime,shap,0.25,0.2582724013496631
-Communities and Crime,shap,0.5,0.5492739310455211
-Communities and Crime,shap,0.75,0.8013070848817763
-Communities and Crime,shap,1.0,1.0
-Communities and Crime,tree,0.25,0.8755840455840456
-Communities and Crime,tree,0.5,0.836406387700739
-Communities and Crime,tree,0.75,0.8980190607379697
-Communities and Crime,tree,1.0,1.0
-Superconductor,mi,0.25,0.9350649350649353
-Superconductor,mi,0.5,0.9460243386789046
-Superconductor,mi,0.75,0.9630062237661021
-Superconductor,mi,1.0,1.0
-Superconductor,rfe,0.25,0.866090909090909
-Superconductor,rfe,0.5,0.9375223755257787
-Superconductor,rfe,0.75,0.9410229201147001
-Superconductor,rfe,1.0,1.0
-Superconductor,shap,0.25,0.47219443575443715
-Superconductor,shap,0.5,0.6345618600755437
-Superconductor,shap,0.75,0.7140779560077463
-Superconductor,shap,1.0,1.0
-Superconductor,tree,0.25,0.8419198193111237
-Superconductor,tree,0.5,0.8165175908977551
-Superconductor,tree,0.75,0.8421029199367951
-Superconductor,tree,1.0,1.0
+Bike Sharing,mi,0.05,1.0
+Bike Sharing,mi,0.15,0.6666666666666666
+Bike Sharing,rfe,0.05,0.75
+Bike Sharing,rfe,0.15,1.0
+Bike Sharing,shap,0.05,0.75
+Bike Sharing,shap,0.15,0.75
+Bike Sharing,tree,0.05,1.0
+Bike Sharing,tree,0.15,0.8333333333333334
+Communities and Crime,mi,0.05,0.8333333333333331
+Communities and Crime,mi,0.15,0.855187908496732
+Communities and Crime,rfe,0.05,0.4236111111111111
+Communities and Crime,rfe,0.15,0.4778679653679654
+Communities and Crime,shap,0.05,0.28650793650793654
+Communities and Crime,shap,0.15,0.33575979368355524
+Communities and Crime,tree,0.05,0.8333333333333331
+Communities and Crime,tree,0.15,0.7337461300309598
+Superconductor,mi,0.05,0.48809523809523814
+Superconductor,mi,0.15,0.7261904761904763
+Superconductor,rfe,0.05,0.7857142857142856
+Superconductor,rfe,0.15,0.7516483516483516
+Superconductor,shap,0.05,0.2833333333333333
+Superconductor,shap,0.15,0.32836156898656904
+Superconductor,tree,0.05,0.8999999999999999
+Superconductor,tree,0.15,0.8230769230769229
