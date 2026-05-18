@@ -175,19 +175,6 @@ def main() -> None:
         generate_figures(raw_df, overlap_df, p["figures"], metric_col=args.metric)
         logging.info("Saved figures to %s", p["figures"])
 
-    if p["summary"].exists():
-        from pandas import read_csv
-        try:
-            from tabulate import tabulate
-        except ImportError:
-            tabulate = None
-
-        summary_df = read_csv(p["summary"])
-        if tabulate is not None:
-            print(tabulate(summary_df.head(20), headers="keys", tablefmt="github", showindex=False))
-        else:
-            print(summary_df.head(20).to_string(index=False))
-
 
 if __name__ == "__main__":
     main()

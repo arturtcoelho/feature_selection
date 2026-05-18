@@ -11,7 +11,8 @@ This repository contains a reproducible experiment pipeline for comparing featur
 
 ## Project structure
 
-- `main.py`: single entry point (CLI).
+- `experiment1.py`: original full multi-dataset pipeline (legacy/main thesis setup).
+- `experiment2.py`: focused pipeline (Superconductor + XGBoost + 3 new strategies).
 - `src/`: experiment modules (data loading, feature selection, runner, stats, figures, stability).
 - `pre_study/`: independent data pre-study pipeline and report generation.
 - `outputs/`: default output location when no run id is used.
@@ -48,7 +49,7 @@ Generated artifacts:
 Use `--run-id` so outputs are isolated and never mixed:
 
 ```bash
-python3 main.py --step all --run-id run01 --use-preprocessed-dir pre_study/data/processed
+python3 experiment1.py --step all --run-id run01 --use-preprocessed-dir pre_study/data/processed
 ```
 
 This writes to:
@@ -62,13 +63,13 @@ If `run01` already exists, the command fails unless `--resume` is provided.
 ### Continue an interrupted run
 
 ```bash
-python3 main.py --step all --run-id run01 --resume --use-preprocessed-dir pre_study/data/processed
+python3 experiment1.py --step all --run-id run01 --resume --use-preprocessed-dir pre_study/data/processed
 ```
 
 ### Quick smoke run
 
 ```bash
-python3 main.py --quick --step all --run-id quick01 --use-preprocessed-dir pre_study/data/processed
+python3 experiment1.py --quick --step all --run-id quick01 --use-preprocessed-dir pre_study/data/processed
 ```
 
 ## Main CLI options
@@ -82,6 +83,29 @@ python3 main.py --quick --step all --run-id quick01 --use-preprocessed-dir pre_s
 - `--workers <n>` (process count for model-level parallelism)
 - `--no-gpu` (force CPU)
 - `--corr-prune-threshold <float>` (optional rank-then-prune correlation filter, in `(0,1)`)
+
+## Experiment 2 CLI
+
+Experiment 2 is fixed to **Superconductor + XGBoost** and compares:
+
+- `native_fi` (`feature_importances_`)
+- `shaprfecv` (Probatus `ShapRFECV`)
+- `hybrid_fi_shaprfecv` (first half of drops via FI, second half via ShapRFECV)
+
+Run all stages:
+
+```bash
+python3 experiment2.py --step all --run-id exp2_run01 --use-preprocessed-dir pre_study/data/processed
+```
+
+Experiment 2 outputs are written to `runs/<run-id>/outputs/` as:
+
+- `exp2_results_raw.csv`
+- `exp2_results_summary.csv`
+- `exp2_stability_analysis.csv`
+- `exp2_multicollinearity_analysis.csv`
+- `exp2_selections_raw.csv`
+- `exp2_importances_raw.csv`
 
 ## Output files
 
@@ -114,6 +138,6 @@ Figures are stored under `figures/` or `runs/<run-id>/figures/`.
 Example:
 
 ```bash
-python3 main.py --step all --run-id run_base --use-preprocessed-dir pre_study/data/processed
-python3 main.py --step all --run-id run_corr09 --use-preprocessed-dir pre_study/data/processed --corr-prune-threshold 0.9
+python3 experiment1.py --step all --run-id run_base --use-preprocessed-dir pre_study/data/processed
+python3 experiment1.py --step all --run-id run_corr09 --use-preprocessed-dir pre_study/data/processed --corr-prune-threshold 0.9
 ```
