@@ -12,8 +12,7 @@ FULL_K_LEVELS = [0.25, 0.50, 0.75, 1.00]
 
 QUICK_REPEAT_SEEDS = [42, 123]
 QUICK_FOLDS = 2
-QUICK_K_LEVELS = [0.50, 1.00]
-
+QUICK_K_LEVELS = [0.05, 0.15, 1.00]
 
 @dataclass(frozen=True)
 class RunConfig:
