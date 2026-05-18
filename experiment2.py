@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import logging
 import random
 import time
@@ -31,6 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--quick", action="store_true", help="2 folds x 2 repeats x k=[0.5,1.0]")
+    parser.add_argument("--workers", type=int, default=1, help="Parallel workers for fold/repeat tasks")
     parser.add_argument("--use-preprocessed-dir", type=str, default="pre_study/data/processed")
     return parser.parse_args()
 
@@ -82,7 +84,124 @@ def _shaprfecv_select(X_train_df: pd.DataFrame, y_train: np.ndarray, k_keep: int
     return selected[:k_keep]
 
 
-def run_experiments(p: dict[str, Path], quick: bool, resume: bool, preprocessed_dir: str) -> None:
+def _run_fold_task(
+    X_df: pd.DataFrame,
+    y: np.ndarray,
+    feature_names: list[str],
+    seed: int,
+    fold: int,
+    tr: np.ndarray,
+    te: np.ndarray,
+    k_levels: list[float],
+    strategies: list[str],
+    done: set[tuple],
+) -> tuple[list[dict], list[dict], list[dict]]:
+    X_tr_raw = X_df.iloc[tr].to_numpy()
+    X_te_raw = X_df.iloc[te].to_numpy()
+    y_tr = y[tr]
+    y_te = y[te]
+
+    scaler = StandardScaler()
+    X_tr = scaler.fit_transform(X_tr_raw)
+    X_te = scaler.transform(X_te_raw)
+    X_tr_df = pd.DataFrame(X_tr, columns=feature_names)
+    n_feat = len(feature_names)
+
+    rows: list[dict] = []
+    sels: list[dict] = []
+    imps: list[dict] = []
+
+    fi_rank = _fi_rank(X_tr, y_tr, feature_names, seed)
+    imps.append({"strategy": "native_fi", "fold": fold, "repeat_seed": seed, "ranked_features": "|".join(fi_rank)})
+
+    for strategy in strategies:
+        for k in k_levels:
+            key = (strategy, float(k), fold, seed)
+            if key in done:
+                continue
+            k_keep = max(1, int(round(n_feat * k)))
+
+            sel_t0 = time.perf_counter()
+            if k == 1.0:
+                selected = feature_names.copy()
+                stage_fi_keep = feature_names.copy()
+                stage_shap_keep = feature_names.copy()
+            elif strategy == "native_fi":
+                selected = fi_rank[:k_keep]
+                stage_fi_keep = selected.copy()
+                stage_shap_keep = selected.copy()
+            elif strategy == "shaprfecv":
+                selected = _shaprfecv_select(X_tr_df, y_tr, k_keep, seed)
+                stage_fi_keep = feature_names.copy()
+                stage_shap_keep = selected.copy()
+            else:
+                n_drop = n_feat - k_keep
+                drop_fi = int(np.ceil(n_drop / 2.0))
+                keep_after_fi = [f for f in fi_rank if f not in set(fi_rank[-drop_fi:])]
+                inter_k = max(k_keep, len(keep_after_fi) - (n_drop - drop_fi))
+                inter_df = X_tr_df[keep_after_fi]
+                selected_inter = _shaprfecv_select(inter_df, y_tr, inter_k, seed)
+                selected = selected_inter[:k_keep]
+                stage_fi_keep = keep_after_fi
+                stage_shap_keep = selected_inter
+            selection_time_s = time.perf_counter() - sel_t0
+
+            sel_idx = [feature_names.index(c) for c in selected]
+            Xtr_sel = X_tr[:, sel_idx]
+            Xte_sel = X_te[:, sel_idx]
+
+            train_t0 = time.perf_counter()
+            model = make_model(seed)
+            model.fit(Xtr_sel, y_tr)
+            train_time_s = time.perf_counter() - train_t0
+            pred_t0 = time.perf_counter()
+            pred = model.predict(Xte_sel)
+            predict_time_s = time.perf_counter() - pred_t0
+
+            rmse = root_mean_squared_error(y_te, pred)
+            mae = mean_absolute_error(y_te, pred)
+            mape = _safe_mape(y_te, pred)
+            mse = mean_squared_error(y_te, pred)
+
+            rows.append(
+                {
+                    "dataset": "Superconductor",
+                    "model": "xgboost",
+                    "strategy": strategy,
+                    "k_pct": float(k),
+                    "fold": fold,
+                    "repeat_seed": seed,
+                    "rmse": float(rmse),
+                    "mae": float(mae),
+                    "mape": float(mape),
+                    "mse": float(mse),
+                    "selection_time_s": float(selection_time_s),
+                    "train_time_s": float(train_time_s),
+                    "predict_time_s": float(predict_time_s),
+                    "total_time_s": float(selection_time_s + train_time_s + predict_time_s),
+                }
+            )
+            sels.append(
+                {
+                    "dataset": "Superconductor",
+                    "model": "xgboost",
+                    "strategy": strategy,
+                    "k_pct": float(k),
+                    "fold": fold,
+                    "repeat_seed": seed,
+                    "n_features_total": n_feat,
+                    "n_features_selected": len(selected),
+                    "n_features_after_fi_stage": len(stage_fi_keep),
+                    "n_features_after_shap_stage": len(stage_shap_keep),
+                    "selected_features_fi_stage": "|".join(stage_fi_keep),
+                    "selected_features_shap_stage": "|".join(stage_shap_keep),
+                    "selected_features": "|".join(selected),
+                }
+            )
+    return rows, sels, imps
+
+
+def run_experiments(p: dict[str, Path], quick: bool, resume: bool, preprocessed_dir: str, workers: int) -> None:
     ds_all = load_all_datasets_from_local(preprocessed_dir)
     ds = [d for d in ds_all if d["name"] == "Superconductor"][0]
     X_df = ds["X"].copy()
@@ -108,114 +227,30 @@ def run_experiments(p: dict[str, Path], quick: bool, resume: bool, preprocessed_
     sels: list[dict] = []
     imps: list[dict] = []
 
-    for rep_i, seed in enumerate(repeats, 1):
-        print(f"repeat {rep_i}/{len(repeats)} (seed={seed})")
+    tasks: list[tuple[int, int, np.ndarray, np.ndarray]] = []
+    for seed in repeats:
         kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
         for fold, (tr, te) in enumerate(kf.split(X_df), 1):
-            print(f"fold {fold}/{folds}")
-            X_tr_raw = X_df.iloc[tr].to_numpy()
-            X_te_raw = X_df.iloc[te].to_numpy()
-            y_tr = y[tr]
-            y_te = y[te]
+            tasks.append((seed, fold, tr, te))
 
-            scaler = StandardScaler()
-            X_tr = scaler.fit_transform(X_tr_raw)
-            X_te = scaler.transform(X_te_raw)
-            X_tr_df = pd.DataFrame(X_tr, columns=feature_names)
-            X_te_df = pd.DataFrame(X_te, columns=feature_names)
-            n_feat = len(feature_names)
-
-            # precompute rankings once per fold
-            t0 = time.perf_counter()
-            fi_rank = _fi_rank(X_tr, y_tr, feature_names, seed)
-            fi_time = time.perf_counter() - t0
-            imps.append({"strategy": "native_fi", "fold": fold, "repeat_seed": seed, "ranked_features": "|".join(fi_rank)})
-
-            for strategy in strategies:
-                for k in k_levels:
-                    key = (strategy, float(k), fold, seed)
-                    if key in done:
-                        continue
-                    k_keep = max(1, int(round(n_feat * k)))
-
-                    sel_t0 = time.perf_counter()
-                    if k == 1.0:
-                        selected = feature_names.copy()
-                        stage_fi_keep = feature_names.copy()
-                        stage_shap_keep = feature_names.copy()
-                    elif strategy == "native_fi":
-                        selected = fi_rank[:k_keep]
-                        stage_fi_keep = selected.copy()
-                        stage_shap_keep = selected.copy()
-                    elif strategy == "shaprfecv":
-                        selected = _shaprfecv_select(X_tr_df, y_tr, k_keep, seed)
-                        stage_fi_keep = feature_names.copy()
-                        stage_shap_keep = selected.copy()
-                    else:
-                        # hybrid: drop more with FI first
-                        n_drop = n_feat - k_keep
-                        drop_fi = int(np.ceil(n_drop / 2.0))
-                        keep_after_fi = [f for f in fi_rank if f not in set(fi_rank[-drop_fi:])]
-                        inter_k = max(k_keep, len(keep_after_fi) - (n_drop - drop_fi))
-                        inter_df = X_tr_df[keep_after_fi]
-                        selected_inter = _shaprfecv_select(inter_df, y_tr, inter_k, seed)
-                        selected = selected_inter[:k_keep]
-                        stage_fi_keep = keep_after_fi
-                        stage_shap_keep = selected_inter
-                    selection_time_s = time.perf_counter() - sel_t0
-
-                    sel_idx = [feature_names.index(c) for c in selected]
-                    Xtr_sel = X_tr[:, sel_idx]
-                    Xte_sel = X_te[:, sel_idx]
-
-                    train_t0 = time.perf_counter()
-                    model = make_model(seed)
-                    model.fit(Xtr_sel, y_tr)
-                    train_time_s = time.perf_counter() - train_t0
-                    pred_t0 = time.perf_counter()
-                    pred = model.predict(Xte_sel)
-                    predict_time_s = time.perf_counter() - pred_t0
-
-                    rmse = root_mean_squared_error(y_te, pred)
-                    mae = mean_absolute_error(y_te, pred)
-                    mape = _safe_mape(y_te, pred)
-                    mse = mean_squared_error(y_te, pred)
-
-                    rows.append(
-                        {
-                            "dataset": "Superconductor",
-                            "model": "xgboost",
-                            "strategy": strategy,
-                            "k_pct": float(k),
-                            "fold": fold,
-                            "repeat_seed": seed,
-                            "rmse": float(rmse),
-                            "mae": float(mae),
-                            "mape": float(mape),
-                            "mse": float(mse),
-                            "selection_time_s": float(selection_time_s),
-                            "train_time_s": float(train_time_s),
-                            "predict_time_s": float(predict_time_s),
-                            "total_time_s": float(selection_time_s + train_time_s + predict_time_s),
-                        }
-                    )
-                    sels.append(
-                        {
-                            "dataset": "Superconductor",
-                            "model": "xgboost",
-                            "strategy": strategy,
-                            "k_pct": float(k),
-                            "fold": fold,
-                            "repeat_seed": seed,
-                            "n_features_total": n_feat,
-                            "n_features_selected": len(selected),
-                            "n_features_after_fi_stage": len(stage_fi_keep),
-                            "n_features_after_shap_stage": len(stage_shap_keep),
-                            "selected_features_fi_stage": "|".join(stage_fi_keep),
-                            "selected_features_shap_stage": "|".join(stage_shap_keep),
-                            "selected_features": "|".join(selected),
-                        }
-                    )
+    print(f"Running {len(tasks)} fold/repeat tasks with workers={workers}")
+    if workers <= 1:
+        for seed, fold, tr, te in tasks:
+            r, s, i = _run_fold_task(X_df, y, feature_names, seed, fold, tr, te, k_levels, strategies, done)
+            rows.extend(r)
+            sels.extend(s)
+            imps.extend(i)
+    else:
+        with ProcessPoolExecutor(max_workers=workers) as ex:
+            futs = [
+                ex.submit(_run_fold_task, X_df, y, feature_names, seed, fold, tr, te, k_levels, strategies, done)
+                for seed, fold, tr, te in tasks
+            ]
+            for fut in as_completed(futs):
+                r, s, i = fut.result()
+                rows.extend(r)
+                sels.extend(s)
+                imps.extend(i)
 
     raw_df = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True) if rows else existing
     raw_df.to_csv(raw_path, index=False)
@@ -477,7 +512,13 @@ def main() -> None:
     p["logs"].mkdir(parents=True, exist_ok=True)
 
     if args.step in ["all", "experiments"]:
-        run_experiments(p, quick=args.quick, resume=args.resume, preprocessed_dir=args.use_preprocessed_dir)
+        run_experiments(
+            p,
+            quick=args.quick,
+            resume=args.resume,
+            preprocessed_dir=args.use_preprocessed_dir,
+            workers=max(1, args.workers),
+        )
         logging.info("Saved Experiment 2 raw outputs under %s", p["outputs"])
     if args.step in ["all", "summary"]:
         run_summary(p)
