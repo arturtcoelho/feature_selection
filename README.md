@@ -98,6 +98,18 @@ Run all stages:
 python3 experiment2.py --step all --run-id exp2_run01 --use-preprocessed-dir pre_study/data/processed
 ```
 
+Run only experiments with parallel workers:
+
+```bash
+python3 experiment2.py --step experiments --run-id exp2_run01 --workers 4 --resume --use-preprocessed-dir pre_study/data/processed
+```
+
+Experiment 2 notes:
+
+- Scope is hard-locked to `dataset=Superconductor` and `model=xgboost`.
+- `hybrid_fi_shaprfecv` drops more features in the FI stage when odd drop counts occur.
+- Selections are stored at every stage (`fi_stage`, `shap_stage`, and final selection).
+
 Experiment 2 outputs are written to `runs/<run-id>/outputs/` as:
 
 - `exp2_results_raw.csv`

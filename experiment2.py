@@ -21,7 +21,6 @@ from src.config import SEED, paths
 from src.data_loading import load_all_datasets_from_local
 from src.logging_utils import setup_logging
 
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Experiment 2: Superconductor + XGBoost feature-selection study")
     parser.add_argument(
@@ -33,6 +32,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--quick", action="store_true", help="2 folds x 2 repeats x k=[0.5,1.0]")
     parser.add_argument("--workers", type=int, default=1, help="Parallel workers for fold/repeat tasks")
+    parser.add_argument("--shaprfecv-step", type=int, default=1, help="Features removed per ShapRFECV iteration")
+    parser.add_argument("--shaprfecv-verbose", type=int, default=0, help="ShapRFECV verbosity level")
+    parser.add_argument("--shaprfecv-cv", type=int, default=3, help="Inner CV folds used by ShapRFECV")
     parser.add_argument("--use-preprocessed-dir", type=str, default="pre_study/data/processed")
     return parser.parse_args()
 
@@ -67,11 +69,26 @@ def _fi_rank(X_train: np.ndarray, y_train: np.ndarray, feature_names: list[str],
     return [feature_names[i] for i in order]
 
 
-def _shaprfecv_select(X_train_df: pd.DataFrame, y_train: np.ndarray, k_keep: int, seed: int) -> list[str]:
+def _shaprfecv_select(
+    X_train_df: pd.DataFrame,
+    y_train: np.ndarray,
+    k_keep: int,
+    seed: int,
+    step: int,
+    verbose: int,
+    cv: int,
+) -> list[str]:
     from probatus.feature_elimination import ShapRFECV
 
     model = make_model(seed)
-    selector = ShapRFECV(model=model, step=1, cv=3, scoring="neg_root_mean_squared_error", n_jobs=1)
+    selector = ShapRFECV(
+        model=model,
+        step=max(1, int(step)),
+        cv=max(2, int(cv)),
+        scoring="neg_root_mean_squared_error",
+        n_jobs=1,
+        verbose=max(0, int(verbose)),
+    )
     selector.fit_compute(X_train_df, y_train)
     try:
         selected = selector.get_reduced_features_set(num_features=k_keep)
@@ -80,6 +97,41 @@ def _shaprfecv_select(X_train_df: pd.DataFrame, y_train: np.ndarray, k_keep: int
     selected = list(selected)
     if len(selected) < k_keep:
         missing = [c for c in X_train_df.columns if c not in selected]
+        selected.extend(missing[: k_keep - len(selected)])
+    return selected[:k_keep]
+
+
+def _shaprfecv_fit(
+    X_train_df: pd.DataFrame,
+    y_train: np.ndarray,
+    seed: int,
+    step: int,
+    verbose: int,
+    cv: int,
+):
+    from probatus.feature_elimination import ShapRFECV
+
+    model = make_model(seed)
+    selector = ShapRFECV(
+        model=model,
+        step=max(1, int(step)),
+        cv=max(2, int(cv)),
+        scoring="neg_root_mean_squared_error",
+        n_jobs=1,
+        verbose=max(0, int(verbose)),
+    )
+    selector.fit_compute(X_train_df, y_train)
+    return selector
+
+
+def _shaprfecv_take_k(selector, X_cols: list[str], k_keep: int) -> list[str]:
+    try:
+        selected = selector.get_reduced_features_set(num_features=k_keep)
+    except TypeError:
+        selected = selector.get_reduced_features_set(k_keep)
+    selected = list(selected)
+    if len(selected) < k_keep:
+        missing = [c for c in X_cols if c not in selected]
         selected.extend(missing[: k_keep - len(selected)])
     return selected[:k_keep]
 
@@ -95,7 +147,11 @@ def _run_fold_task(
     k_levels: list[float],
     strategies: list[str],
     done: set[tuple],
+    shaprfecv_step: int,
+    shaprfecv_verbose: int,
+    shaprfecv_cv: int,
 ) -> tuple[list[dict], list[dict], list[dict]]:
+    print(f"repeat_seed={seed} | fold={fold} | start", flush=True)
     X_tr_raw = X_df.iloc[tr].to_numpy()
     X_te_raw = X_df.iloc[te].to_numpy()
     y_tr = y[tr]
@@ -114,10 +170,32 @@ def _run_fold_task(
     fi_rank = _fi_rank(X_tr, y_tr, feature_names, seed)
     imps.append({"strategy": "native_fi", "fold": fold, "repeat_seed": seed, "ranked_features": "|".join(fi_rank)})
 
+    # Optimized full-feature ShapRFECV path (run once per fold)
+    selector_full = None
+    if any(k < 1.0 for k in k_levels):
+        print(f"repeat_seed={seed} | fold={fold} | shaprfecv(full) | fitting once", flush=True)
+        selector_full = _shaprfecv_fit(
+            X_tr_df,
+            y_tr,
+            seed,
+            step=shaprfecv_step,
+            verbose=shaprfecv_verbose,
+            cv=shaprfecv_cv,
+        )
+
+    # Cache hybrid selectors by feature pool
+    hybrid_selector_cache: dict[tuple[str, ...], Any] = {}
+
     for strategy in strategies:
+        print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | start", flush=True)
         for k in k_levels:
+            print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | k={int(k*100)}%", flush=True)
             key = (strategy, float(k), fold, seed)
             if key in done:
+                print(
+                    f"repeat_seed={seed} | fold={fold} | strategy={strategy} | k={int(k*100)}% | skipped(resume)",
+                    flush=True,
+                )
                 continue
             k_keep = max(1, int(round(n_feat * k)))
 
@@ -131,7 +209,8 @@ def _run_fold_task(
                 stage_fi_keep = selected.copy()
                 stage_shap_keep = selected.copy()
             elif strategy == "shaprfecv":
-                selected = _shaprfecv_select(X_tr_df, y_tr, k_keep, seed)
+                assert selector_full is not None
+                selected = _shaprfecv_take_k(selector_full, feature_names, k_keep)
                 stage_fi_keep = feature_names.copy()
                 stage_shap_keep = selected.copy()
             else:
@@ -140,7 +219,21 @@ def _run_fold_task(
                 keep_after_fi = [f for f in fi_rank if f not in set(fi_rank[-drop_fi:])]
                 inter_k = max(k_keep, len(keep_after_fi) - (n_drop - drop_fi))
                 inter_df = X_tr_df[keep_after_fi]
-                selected_inter = _shaprfecv_select(inter_df, y_tr, inter_k, seed)
+                key_pool = tuple(keep_after_fi)
+                if key_pool not in hybrid_selector_cache:
+                    print(
+                        f"repeat_seed={seed} | fold={fold} | strategy=hybrid_fi_shaprfecv | shaprfecv fit for pool size={len(keep_after_fi)}",
+                        flush=True,
+                    )
+                    hybrid_selector_cache[key_pool] = _shaprfecv_fit(
+                        inter_df,
+                        y_tr,
+                        seed,
+                        step=shaprfecv_step,
+                        verbose=shaprfecv_verbose,
+                        cv=shaprfecv_cv,
+                    )
+                selected_inter = _shaprfecv_take_k(hybrid_selector_cache[key_pool], keep_after_fi, inter_k)
                 selected = selected_inter[:k_keep]
                 stage_fi_keep = keep_after_fi
                 stage_shap_keep = selected_inter
@@ -198,19 +291,82 @@ def _run_fold_task(
                     "selected_features": "|".join(selected),
                 }
             )
+        print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | done", flush=True)
+    print(f"repeat_seed={seed} | fold={fold} | done", flush=True)
     return rows, sels, imps
 
 
-def run_experiments(p: dict[str, Path], quick: bool, resume: bool, preprocessed_dir: str, workers: int) -> None:
+def _run_seed_task(
+    preprocessed_dir: str,
+    seed: int,
+    folds: int,
+    k_levels: list[float],
+    strategies: list[str],
+    done: set[tuple],
+    shaprfecv_step: int,
+    shaprfecv_verbose: int,
+    shaprfecv_cv: int,
+) -> tuple[list[dict], list[dict], list[dict]]:
     ds_all = load_all_datasets_from_local(preprocessed_dir)
-    ds = [d for d in ds_all if d["name"] == "Superconductor"][0]
+    ds_candidates = [d for d in ds_all if d["name"] == "Superconductor"]
+    if not ds_candidates:
+        raise RuntimeError("Superconductor dataset not found")
+    ds = ds_candidates[0]
     X_df = ds["X"].copy()
     y = ds["y"].to_numpy()
     feature_names = list(X_df.columns)
 
+    rows: list[dict] = []
+    sels: list[dict] = []
+    imps: list[dict] = []
+    kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
+    for fold, (tr, te) in enumerate(kf.split(X_df), 1):
+        r, s, i = _run_fold_task(
+            X_df,
+            y,
+            feature_names,
+            seed,
+            fold,
+            tr,
+            te,
+            k_levels,
+            strategies,
+            done,
+            shaprfecv_step,
+            shaprfecv_verbose,
+            shaprfecv_cv,
+        )
+        rows.extend(r)
+        sels.extend(s)
+        imps.extend(i)
+    return rows, sels, imps
+
+
+def run_experiments(
+    p: dict[str, Path],
+    quick: bool,
+    resume: bool,
+    preprocessed_dir: str,
+    workers: int,
+    shaprfecv_step: int,
+    shaprfecv_verbose: int,
+    shaprfecv_cv: int,
+) -> None:
+    ds_all = load_all_datasets_from_local(preprocessed_dir)
+    ds_candidates = [d for d in ds_all if d["name"] == "Superconductor"]
+    if not ds_candidates:
+        raise RuntimeError("Experiment 2 requires Superconductor dataset, but it was not found in provided data source")
+    ds = ds_candidates[0]
+    X_df = ds["X"].copy()
+    y = ds["y"].to_numpy()
+    feature_names = list(X_df.columns)
+
+    logging.info("Experiment 2 scope locked: dataset=Superconductor, model=xgboost")
+    logging.info("Loaded Superconductor rows=%d features=%d", X_df.shape[0], X_df.shape[1])
+
     repeats = [42, 123] if quick else [42, 123, 256, 512, 999]
     folds = 2 if quick else 10
-    k_levels = [0.5, 1.0] if quick else [0.25, 0.5, 0.75, 1.0]
+    k_levels = [0.5, 1.0] if quick else [0.05, 0.10, 0.15, 0.25, 0.50, 1.0]
     strategies = ["native_fi", "shaprfecv", "hybrid_fi_shaprfecv"]
 
     raw_path = p["outputs"] / "exp2_results_raw.csv"
@@ -227,35 +383,84 @@ def run_experiments(p: dict[str, Path], quick: bool, resume: bool, preprocessed_
     sels: list[dict] = []
     imps: list[dict] = []
 
-    tasks: list[tuple[int, int, np.ndarray, np.ndarray]] = []
-    for seed in repeats:
-        kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
-        for fold, (tr, te) in enumerate(kf.split(X_df), 1):
-            tasks.append((seed, fold, tr, te))
+    logging.info("Strategies: %s", ", ".join(strategies))
+    logging.info("k levels: %s", ", ".join([str(k) for k in k_levels]))
+    logging.info("Repeats: %s | folds=%d | workers=%d", repeats, folds, workers)
+    logging.info(
+        "ShapRFECV config: step=%d | verbose=%d | cv=%d",
+        max(1, int(shaprfecv_step)),
+        max(0, int(shaprfecv_verbose)),
+        max(2, int(shaprfecv_cv)),
+    )
+    logging.info("Running %d seed tasks", len(repeats))
+    total_cells = len(repeats) * folds * len(strategies) * len(k_levels)
+    logging.info("Planned strategy-k cells: %d", total_cells)
 
-    print(f"Running {len(tasks)} fold/repeat tasks with workers={workers}")
+    def _checkpoint_write() -> None:
+        merged = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True) if rows else existing
+        merged.to_csv(raw_path, index=False)
+        pd.DataFrame(sels).to_csv(sel_path, index=False)
+        pd.DataFrame(imps).to_csv(imp_path, index=False)
+
     if workers <= 1:
-        for seed, fold, tr, te in tasks:
-            r, s, i = _run_fold_task(X_df, y, feature_names, seed, fold, tr, te, k_levels, strategies, done)
+        for seed in repeats:
+            logging.info("Seed task start: repeat_seed=%d", seed)
+            r, s, i = _run_seed_task(
+                preprocessed_dir,
+                seed,
+                folds,
+                k_levels,
+                strategies,
+                done,
+                shaprfecv_step,
+                shaprfecv_verbose,
+                shaprfecv_cv,
+            )
             rows.extend(r)
             sels.extend(s)
             imps.extend(i)
+            _checkpoint_write()
+            logging.info("Seed task done: repeat_seed=%d rows=%d", seed, len(r))
     else:
         with ProcessPoolExecutor(max_workers=workers) as ex:
             futs = [
-                ex.submit(_run_fold_task, X_df, y, feature_names, seed, fold, tr, te, k_levels, strategies, done)
-                for seed, fold, tr, te in tasks
+                ex.submit(
+                    _run_seed_task,
+                    preprocessed_dir,
+                    seed,
+                    folds,
+                    k_levels,
+                    strategies,
+                    done,
+                    shaprfecv_step,
+                    shaprfecv_verbose,
+                    shaprfecv_cv,
+                )
+                for seed in repeats
             ]
+            completed_tasks = 0
             for fut in as_completed(futs):
                 r, s, i = fut.result()
                 rows.extend(r)
                 sels.extend(s)
                 imps.extend(i)
+                _checkpoint_write()
+                completed_tasks += 1
+                logging.info(
+                    "Task completed %d/%d: +%d result rows (total=%d)",
+                    completed_tasks,
+                    len(futs),
+                    len(r),
+                    len(rows),
+                )
 
     raw_df = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True) if rows else existing
     raw_df.to_csv(raw_path, index=False)
     pd.DataFrame(sels).to_csv(sel_path, index=False)
     pd.DataFrame(imps).to_csv(imp_path, index=False)
+    logging.info("Saved exp2 raw rows=%d to %s", len(raw_df), raw_path)
+    logging.info("Saved exp2 selections rows=%d to %s", len(sels), sel_path)
+    logging.info("Saved exp2 importances rows=%d to %s", len(imps), imp_path)
 
 
 def run_summary(p: dict[str, Path]) -> None:
@@ -510,6 +715,8 @@ def main() -> None:
     p["outputs"].mkdir(parents=True, exist_ok=True)
     p["figures"].mkdir(parents=True, exist_ok=True)
     p["logs"].mkdir(parents=True, exist_ok=True)
+    logging.info("Experiment 2 run root: %s", p["root"])
+    logging.info("Experiment 2 is fixed to dataset=Superconductor and model=xgboost")
 
     if args.step in ["all", "experiments"]:
         run_experiments(
@@ -518,6 +725,9 @@ def main() -> None:
             resume=args.resume,
             preprocessed_dir=args.use_preprocessed_dir,
             workers=max(1, args.workers),
+            shaprfecv_step=max(1, args.shaprfecv_step),
+            shaprfecv_verbose=max(0, args.shaprfecv_verbose),
+            shaprfecv_cv=max(2, args.shaprfecv_cv),
         )
         logging.info("Saved Experiment 2 raw outputs under %s", p["outputs"])
     if args.step in ["all", "summary"]:
