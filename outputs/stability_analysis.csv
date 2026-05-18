@@ -1,0 +1,49 @@
+dataset,strategy,k_pct,mean_jaccard_to_majority
+Bike Sharing,mi,0.25,1.0
+Bike Sharing,mi,0.5,0.9937888198757764
+Bike Sharing,mi,0.75,0.8229090909090907
+Bike Sharing,mi,1.0,1.0
+Bike Sharing,rfe,0.25,1.0
+Bike Sharing,rfe,0.5,1.0
+Bike Sharing,rfe,0.75,1.0
+Bike Sharing,rfe,1.0,1.0
+Bike Sharing,shap,0.25,0.8593333333333334
+Bike Sharing,shap,0.5,0.8319099378881986
+Bike Sharing,shap,0.75,0.8858181818181818
+Bike Sharing,shap,1.0,1.0
+Bike Sharing,tree,0.25,0.83
+Bike Sharing,tree,0.5,1.0
+Bike Sharing,tree,0.75,1.0
+Bike Sharing,tree,1.0,1.0
+Communities and Crime,mi,0.25,0.9570370370370369
+Communities and Crime,mi,0.5,0.8799160543828303
+Communities and Crime,mi,0.75,0.9367435713298471
+Communities and Crime,mi,1.0,1.0
+Communities and Crime,rfe,0.25,0.7347853071206799
+Communities and Crime,rfe,0.5,0.7992574082896653
+Communities and Crime,rfe,0.75,0.8554287939653826
+Communities and Crime,rfe,1.0,1.0
+Communities and Crime,shap,0.25,0.3363676903658881
+Communities and Crime,shap,0.5,0.41777262116498565
+Communities and Crime,shap,0.75,0.748195101020727
+Communities and Crime,shap,1.0,1.0
+Communities and Crime,tree,0.25,0.8678036630036626
+Communities and Crime,tree,0.5,0.8528335209679611
+Communities and Crime,tree,0.75,0.9146021574534234
+Communities and Crime,tree,1.0,1.0
+Superconductor,mi,0.25,0.9561904761904761
+Superconductor,mi,0.5,0.9799020350451951
+Superconductor,mi,0.75,0.9948387096774195
+Superconductor,mi,1.0,1.0
+Superconductor,rfe,0.25,0.920884622623753
+Superconductor,rfe,0.5,0.9307368529755995
+Superconductor,rfe,0.75,0.9525965378707315
+Superconductor,rfe,1.0,1.0
+Superconductor,shap,0.25,0.49734826822825756
+Superconductor,shap,0.5,0.6149732321492724
+Superconductor,shap,0.75,0.7723355076010684
+Superconductor,shap,1.0,1.0
+Superconductor,tree,0.25,0.9069904009034442
+Superconductor,tree,0.5,0.9393491002655223
+Superconductor,tree,0.75,0.9380511343495213
+Superconductor,tree,1.0,1.0

@@ -1,0 +1,13 @@
+feature,missing_ratio
+season,0.0
+year,0.0
+month,0.0
+hour,0.0
+holiday,0.0
+weekday,0.0
+workingday,0.0
+weather,0.0
+temp,0.0
+feel_temp,0.0
+humidity,0.0
+windspeed,0.0

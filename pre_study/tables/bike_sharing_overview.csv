@@ -1,0 +1,2 @@
+dataset,rows_raw,features_raw,rows_processed,features_processed,rows_removed
+Bike Sharing,17379,12,17379,12,0
