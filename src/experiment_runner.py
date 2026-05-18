@@ -14,7 +14,7 @@ from sklearn.model_selection import KFold
 from tqdm import tqdm
 
 from src.config import MODELS, STRATEGIES
-from src.feature_selection import select_top_k_indices, strategy_rank
+from src.feature_selection import prune_ranking_by_correlation, select_top_k_indices, strategy_rank_with_scores
 from src.models import make_model
 from src.preprocessing import scale_train_test
 from src.results_io import RAW_COLUMNS
@@ -81,7 +81,7 @@ class ModelTask:
     model_name: str
 
 
-def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]) -> tuple[list[dict], list[dict]]:
+def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]) -> tuple[list[dict], list[dict], list[dict]]:
     random.seed(task.repeat_seed)
     np.random.seed(task.repeat_seed)
 
@@ -91,6 +91,7 @@ def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]
 
     results: list[dict[str, Any]] = []
     selections: list[dict[str, Any]] = []
+    importances: list[dict[str, Any]] = []
 
     print(f"repeat {task.repeat_idx}/{task.repeat_total} (seed={task.repeat_seed})")
     print(f"dataset {task.dataset_idx}/{task.dataset_total} ({task.dataset_name})")
@@ -115,10 +116,12 @@ def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]
         for strategy_idx, strategy in enumerate(STRATEGIES, start=1):
             print(f"strategy {strategy_idx}/{len(STRATEGIES)} ({strategy})")
             ranking = None
+            ranking_pruned = None
+            ranking_scores = None
             selection_time_s = 0.0
             if any(k < 1.0 for k in run_config.k_levels):
                 t0 = time.perf_counter()
-                ranking = strategy_rank(
+                ranking, ranking_scores = strategy_rank_with_scores(
                     strategy=strategy,
                     X_train=X_train,
                     y_train=y_train,
@@ -127,7 +130,23 @@ def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]
                     shap_sample_ratio=run_config.shap_sample_ratio,
                     use_gpu=run_config.use_gpu,
                 )
+                ranking_pruned = prune_ranking_by_correlation(ranking, X_train, run_config.corr_prune_threshold)
                 selection_time_s = time.perf_counter() - t0
+
+                ordered_features = feature_names[ranking].tolist()
+                ordered_scores = [float(ranking_scores[int(i)]) for i in ranking.tolist()]
+                importances.append(
+                    {
+                        "dataset": task.dataset_name,
+                        "model": task.model_name,
+                        "strategy": strategy,
+                        "fold": fold_num,
+                        "repeat_seed": task.repeat_seed,
+                        "corr_prune_threshold": run_config.corr_prune_threshold,
+                        "ranked_features": "|".join(ordered_features),
+                        "ranked_scores": "|".join([f"{v:.12g}" for v in ordered_scores]),
+                    }
+                )
 
             for k_idx, k_pct in enumerate(run_config.k_levels, start=1):
                 print(f"k {k_idx}/{len(run_config.k_levels)} ({int(k_pct * 100)}%)")
@@ -165,8 +184,8 @@ def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]
                     selected_idx = np.arange(n_features)
                     local_selection_time = 0.0
                 else:
-                    assert ranking is not None
-                    selected_idx = select_top_k_indices(ranking, n_features, k_pct)
+                    assert ranking_pruned is not None
+                    selected_idx = select_top_k_indices(ranking_pruned, n_features, k_pct)
                     X_train_sel = X_train[:, selected_idx]
                     X_test_sel = X_test[:, selected_idx]
 
@@ -217,10 +236,14 @@ def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]
                         "k_pct": float(k_pct),
                         "fold": fold_num,
                         "repeat_seed": task.repeat_seed,
+                        "corr_prune_threshold": run_config.corr_prune_threshold,
+                        "n_features_total": int(n_features),
+                        "n_features_post_prune": int(len(ranking_pruned) if ranking_pruned is not None else n_features),
+                        "n_features_selected": int(len(selected_idx)),
                         "selected_features": "|".join(feature_names[selected_idx].tolist()),
                     }
                 )
-    return results, selections
+    return results, selections, importances
 
 
 def run_experiments(
@@ -229,10 +252,11 @@ def run_experiments(
     existing_raw: pd.DataFrame,
     checkpoint_every_tasks: int = 1,
     checkpoint_callback=None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     done_keys = build_done_keys(existing_raw)
     result_rows: list[dict[str, Any]] = []
     selection_rows: list[dict[str, Any]] = []
+    importance_rows: list[dict[str, Any]] = []
 
     tasks: list[tuple[ModelTask, dict]] = []
     for repeat_idx, repeat_seed in enumerate(run_config.repeat_seeds, start=1):
@@ -265,9 +289,10 @@ def run_experiments(
         for future in as_completed(future_map):
             task, _ = future_map[future]
             try:
-                rows, sels = future.result()
+                rows, sels, imps = future.result()
                 result_rows.extend(rows)
                 selection_rows.extend(sels)
+                importance_rows.extend(imps)
             except Exception as exc:  # noqa: BLE001
                 logging.exception(
                     "Task failed repeat_seed=%d dataset=%s model=%s: %s",
@@ -281,7 +306,7 @@ def run_experiments(
                 progress.update(1)
                 completed += 1
                 if checkpoint_callback is not None and completed % checkpoint_every_tasks == 0:
-                    checkpoint_callback(result_rows, selection_rows)
+                    checkpoint_callback(result_rows, selection_rows, importance_rows)
         progress.close()
 
     if result_rows:
@@ -292,4 +317,5 @@ def run_experiments(
         raw_df = existing_raw.copy()
 
     selection_df = pd.DataFrame(selection_rows)
-    return raw_df, selection_df
+    importance_df = pd.DataFrame(importance_rows)
+    return raw_df, selection_df, importance_df

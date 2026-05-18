@@ -38,6 +38,18 @@ def parse_args() -> argparse.Namespace:
         default="rmse",
         help="Metric used in statistical tests and figure axes",
     )
+    parser.add_argument(
+        "--corr-prune-threshold",
+        type=float,
+        default=None,
+        help="Optional correlation-pruning threshold in (0,1), applied after ranking and before top-k.",
+    )
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="Isolate outputs under runs/<run-id>/ (safe, non-overwriting workflow).",
+    )
     return parser.parse_args()
 
 
@@ -54,15 +66,31 @@ def main() -> None:
     random.seed(SEED)
     np.random.seed(SEED)
 
-    p = paths(Path.cwd())
+    p = paths(Path.cwd(), run_id=args.run_id)
     ensure_dirs(p)
+
+    if args.run_id and p["raw"].exists() and not args.resume:
+        raise RuntimeError(
+            f"Run '{args.run_id}' already has results at {p['raw']}. "
+            "Use --resume to continue it, or choose a new --run-id."
+        )
     cfg = build_run_config(quick=args.quick)
     if args.workers is not None:
         cfg = replace(cfg, workers=max(1, args.workers))
     if args.no_gpu:
         cfg = replace(cfg, use_gpu=False)
+    if args.corr_prune_threshold is not None:
+        cfg = replace(cfg, corr_prune_threshold=args.corr_prune_threshold)
 
-    logging.info("Run config: quick=%s, folds=%d, repeats=%s, k=%s", cfg.quick, cfg.folds, cfg.repeat_seeds, cfg.k_levels)
+    logging.info(
+        "Run config: quick=%s, folds=%d, repeats=%s, k=%s, corr_prune_threshold=%s, run_root=%s",
+        cfg.quick,
+        cfg.folds,
+        cfg.repeat_seeds,
+        cfg.k_levels,
+        cfg.corr_prune_threshold,
+        p["root"],
+    )
     if args.dry_run:
         est = 3 * 3 * 4 * len(cfg.k_levels) * cfg.folds * len(cfg.repeat_seeds)
         print(f"Dry run plan: estimated observations={est}")
@@ -81,15 +109,17 @@ def main() -> None:
         else:
             datasets = load_all_datasets()
 
-        def _checkpoint(rows, sels):
+        def _checkpoint(rows, sels, imps):
             if rows:
                 partial_new = pd.DataFrame(rows)
                 merged = pd.concat([raw_df, partial_new], ignore_index=True)
                 merged.to_csv(p["raw"], index=False)
             if sels:
                 pd.DataFrame(sels).to_csv(p["selections"], index=False)
+            if imps:
+                pd.DataFrame(imps).to_csv(p["importances"], index=False)
 
-        raw_df, selection_df = run_experiments(
+        raw_df, selection_df, importance_df = run_experiments(
             datasets,
             cfg,
             raw_df,
@@ -100,6 +130,8 @@ def main() -> None:
         save_raw_results(p["raw"], raw_df)
         if not selection_df.empty:
             selection_df.to_csv(p["selections"], index=False)
+        if not importance_df.empty:
+            importance_df.to_csv(p["importances"], index=False)
         logging.info("Saved raw results to %s", p["raw"])
         logging.info("Total experiment stage time: %.3f s", exp_total_s)
 

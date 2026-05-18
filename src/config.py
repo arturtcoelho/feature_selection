@@ -25,6 +25,7 @@ class RunConfig:
     shap_sample_ratio: float = 0.10
     workers: int = 3
     use_gpu: bool = True
+    corr_prune_threshold: float | None = None
 
 
 def build_run_config(quick: bool) -> RunConfig:
@@ -36,6 +37,7 @@ def build_run_config(quick: bool) -> RunConfig:
             repeat_seeds=QUICK_REPEAT_SEEDS,
             k_levels=QUICK_K_LEVELS,
             workers=workers,
+            corr_prune_threshold=None,
         )
     return RunConfig(
         quick=False,
@@ -43,20 +45,33 @@ def build_run_config(quick: bool) -> RunConfig:
         repeat_seeds=FULL_REPEAT_SEEDS,
         k_levels=FULL_K_LEVELS,
         workers=workers,
+        corr_prune_threshold=None,
     )
 
 
-def paths(root: Path) -> dict[str, Path]:
+def paths(root: Path, run_id: str | None = None) -> dict[str, Path]:
+    if run_id:
+        run_root = root / "runs" / run_id
+        outputs_dir = run_root / "outputs"
+        figures_dir = run_root / "figures"
+        logs_dir = run_root / "logs"
+    else:
+        run_root = root
+        outputs_dir = root / "outputs"
+        figures_dir = root / "figures"
+        logs_dir = root / "runs"
+
     return {
-        "root": root,
-        "outputs": root / "outputs",
-        "figures": root / "figures",
-        "logs": root / "runs",
-        "raw": root / "outputs" / "results_raw.csv",
-        "selections": root / "outputs" / "selections_raw.csv",
-        "summary": root / "outputs" / "results_summary.csv",
-        "stats": root / "outputs" / "stats_tests.csv",
-        "stability": root / "outputs" / "stability_analysis.csv",
+        "root": run_root,
+        "outputs": outputs_dir,
+        "figures": figures_dir,
+        "logs": logs_dir,
+        "raw": outputs_dir / "results_raw.csv",
+        "selections": outputs_dir / "selections_raw.csv",
+        "importances": outputs_dir / "feature_importances_raw.csv",
+        "summary": outputs_dir / "results_summary.csv",
+        "stats": outputs_dir / "stats_tests.csv",
+        "stability": outputs_dir / "stability_analysis.csv",
     }
 
 
