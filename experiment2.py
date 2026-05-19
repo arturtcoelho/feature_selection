@@ -14,6 +14,7 @@ import seaborn as sns
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error, root_mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler
+from tqdm import tqdm
 from xgboost import DMatrix, XGBRegressor
 
 from src.config import SEED, paths
@@ -75,13 +76,19 @@ def _build_shap_path(
     shap_step: int,
     shap_sample_ratio: float,
     shap_max_samples: int,
+    progress_callback=None,
 ) -> list[dict]:
     current = list(X_train_df.columns)
     path = []
     step = max(1, int(shap_step))
     rng = np.random.default_rng(seed)
 
+    total_steps = int(np.ceil((len(current) - 1) / step)) + 1
+    step_idx = 0
     while len(current) >= 1:
+        step_idx += 1
+        if progress_callback is not None:
+            progress_callback(step_idx, total_steps)
         t0 = time.perf_counter()
         model = make_model(seed)
         model.fit(X_train_df[current], y_train)
@@ -154,7 +161,7 @@ def _select_from_path(path: list[dict], k_keep: int) -> tuple[list[str], dict]:
     return snap["features"][:k_keep], snap
 
 
-def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple], preprocessed_dir: str, shap_step: int, shap_sample_ratio: float, shap_max_samples: int) -> tuple[list[dict], list[dict], list[dict]]:
+def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple], preprocessed_dir: str, shap_step: int, shap_sample_ratio: float, shap_max_samples: int) -> tuple[list[dict], list[dict], list[dict], int]:
     ds_all = load_all_datasets_from_local(preprocessed_dir)
     ds = [d for d in ds_all if d["name"] == "Superconductor"]
     if not ds:
@@ -166,6 +173,7 @@ def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple
     rows: list[dict] = []
     sels: list[dict] = []
     paths_rows: list[dict] = []
+    exp_done = 0
     kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
 
     for fold, (tr, te) in enumerate(kf.split(X_df), 1):
@@ -188,17 +196,43 @@ def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple
         fi_rank = [feature_names[i] for i in fi_order]
 
         print(f"repeat_seed={seed} | fold={fold} | custom_shap_rfe | build full path", flush=True)
-        full_path = _build_shap_path(X_tr_df, y_tr, X_te_df, y_te, seed, shap_step, shap_sample_ratio, shap_max_samples)
+        full_path = _build_shap_path(
+            X_tr_df,
+            y_tr,
+            X_te_df,
+            y_te,
+            seed,
+            shap_step,
+            shap_sample_ratio,
+            shap_max_samples,
+            progress_callback=lambda i, t: print(
+                f"repeat: {seed} | fold: {fold}/{folds} | strat: shaprfe | progress: {i}/{t}",
+                flush=True,
+            ),
+        )
         path_cache: dict[tuple[str, ...], list[dict]] = {}
 
         for strategy in ["native_fi", "custom_shap_rfe", "hybrid_fi_custom_shap_rfe"]:
-            print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | start", flush=True)
+            strat_label = "fi" if strategy == "native_fi" else ("shaprfe" if strategy == "custom_shap_rfe" else "hybrid")
+            if strategy == "native_fi":
+                print(f"repeat: {seed} | fold: {fold}/{folds} | strat: {strat_label} | progress: n/a", flush=True)
+            elif strategy == "hybrid_fi_custom_shap_rfe":
+                print(f"repeat: {seed} | fold: {fold}/{folds} | strat: {strat_label} | progress: 0/{len(k_levels)}", flush=True)
+
+            strategy_has_work = False
+            hybrid_k_done = 0
             for k in k_levels:
-                print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | k={int(k*100)}%", flush=True)
                 key = (strategy, float(k), fold, seed)
                 if key in done:
-                    print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | k={int(k*100)}% | skipped(resume)", flush=True)
+                    if strategy == "hybrid_fi_custom_shap_rfe":
+                        hybrid_k_done += 1
+                        print(
+                            f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: {hybrid_k_done}/{len(k_levels)}",
+                            flush=True,
+                        )
                     continue
+
+                strategy_has_work = True
 
                 k_keep = max(1, int(round(n_feat * k)))
                 sel_t0 = time.perf_counter()
@@ -228,10 +262,16 @@ def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple
                             shap_step,
                             shap_sample_ratio,
                             shap_max_samples,
+                            progress_callback=None,
                         )
                     selected, snap = _select_from_path(path_cache[pool_key], k_keep)
                     stage_fi_keep = keep_after_fi
                     stage_shap_keep = selected.copy()
+                    hybrid_k_done += 1
+                    print(
+                        f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: {hybrid_k_done}/{len(k_levels)}",
+                        flush=True,
+                    )
 
                 selection_time_s = time.perf_counter() - sel_t0
                 model = make_model(seed)
@@ -278,7 +318,8 @@ def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple
                     }
                 )
 
-            print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | done", flush=True)
+            if strategy_has_work:
+                exp_done += 1
 
         for snap in full_path:
             paths_rows.append(
@@ -304,7 +345,7 @@ def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple
 
         print(f"repeat_seed={seed} | fold={fold} | done", flush=True)
 
-    return rows, sels, paths_rows
+    return rows, sels, paths_rows, exp_done
 
 
 def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocessed_dir: str, workers: int, shap_step: int, shap_sample_ratio: float, shap_max_samples: int) -> None:
@@ -322,6 +363,14 @@ def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocess
         for _, r in existing.iterrows():
             done.add((r["strategy"], float(r["k_pct"]), int(r["fold"]), int(r["repeat_seed"])))
 
+    total_experiments = len(repeats) * folds * 3
+    remaining_experiments = 0
+    for seed in repeats:
+        for fold in range(1, folds + 1):
+            for strategy in ["native_fi", "custom_shap_rfe", "hybrid_fi_custom_shap_rfe"]:
+                if any((strategy, float(k), fold, seed) not in done for k in k_levels):
+                    remaining_experiments += 1
+
     rows: list[dict] = []
     sels: list[dict] = []
     paths_rows: list[dict] = []
@@ -330,13 +379,17 @@ def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocess
     logging.info("k levels: %s", ", ".join([str(x) for x in k_levels]))
     logging.info("repeats=%s folds=%d workers=%d", repeats, folds, workers)
     logging.info("custom SHAP-RFE config: step=%d sample_ratio=%.3f max_samples=%d", shap_step, shap_sample_ratio, shap_max_samples)
+    logging.info("planned experiments=%d | remaining experiments=%d", total_experiments, remaining_experiments)
+
+    pbar = tqdm(total=remaining_experiments, desc="Experiment2 repeat-fold-strategy", unit="exp")
 
     if workers <= 1:
         for seed in repeats:
-            r, s, pth = _run_seed_task(seed, folds, k_levels, done, preprocessed_dir, shap_step, shap_sample_ratio, shap_max_samples)
+            r, s, pth, exp_done = _run_seed_task(seed, folds, k_levels, done, preprocessed_dir, shap_step, shap_sample_ratio, shap_max_samples)
             rows.extend(r)
             sels.extend(s)
             paths_rows.extend(pth)
+            pbar.update(exp_done)
             _checkpoint_write(existing, rows, sels, paths_rows, raw_path, sel_path, path_path)
             logging.info("seed done=%d accumulated rows=%d", seed, len(rows))
     else:
@@ -347,13 +400,16 @@ def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocess
             ]
             completed = 0
             for fut in as_completed(futs):
-                r, s, pth = fut.result()
+                r, s, pth, exp_done = fut.result()
                 rows.extend(r)
                 sels.extend(s)
                 paths_rows.extend(pth)
+                pbar.update(exp_done)
                 _checkpoint_write(existing, rows, sels, paths_rows, raw_path, sel_path, path_path)
                 completed += 1
                 logging.info("seed tasks done %d/%d (+%d rows, total=%d)", completed, len(futs), len(r), len(rows))
+
+    pbar.close()
 
 
 def run_summary(pmap: dict[str, Path]) -> None:
