@@ -89,8 +89,8 @@ python3 experiment1.py --quick --step all --run-id quick01 --use-preprocessed-di
 Experiment 2 is fixed to **Superconductor + XGBoost** and compares:
 
 - `native_fi` (`feature_importances_`)
-- `shaprfecv` (Probatus `ShapRFECV`)
-- `hybrid_fi_shaprfecv` (first half of drops via FI, second half via ShapRFECV)
+- `custom_shap_rfe` (custom SHAP-RFE elimination path)
+- `hybrid_fi_custom_shap_rfe` (first half of drops via FI, second half via custom SHAP-RFE)
 
 Run all stages:
 
@@ -107,8 +107,17 @@ python3 experiment2.py --step experiments --run-id exp2_run01 --workers 4 --resu
 Experiment 2 notes:
 
 - Scope is hard-locked to `dataset=Superconductor` and `model=xgboost`.
-- `hybrid_fi_shaprfecv` drops more features in the FI stage when odd drop counts occur.
+- `hybrid_fi_custom_shap_rfe` drops more features in the FI stage when odd drop counts occur.
 - Selections are stored at every stage (`fi_stage`, `shap_stage`, and final selection).
+- SHAP contributions are computed with XGBoost native `pred_contribs=True` (no Probatus runtime dependency).
+- Full-mode k levels in Experiment 2: `0.05, 0.10, 0.15, 0.25, 0.50, 1.0`.
+
+Useful Experiment 2 options:
+
+- `--workers <n>` parallel seed tasks
+- `--shap-step <n>` features dropped per SHAP-RFE iteration
+- `--shap-sample-ratio <r>` validation sample ratio for contribution scoring
+- `--shap-max-samples <n>` cap of validation rows used for contribution scoring
 
 Experiment 2 outputs are written to `runs/<run-id>/outputs/` as:
 
@@ -117,7 +126,7 @@ Experiment 2 outputs are written to `runs/<run-id>/outputs/` as:
 - `exp2_stability_analysis.csv`
 - `exp2_multicollinearity_analysis.csv`
 - `exp2_selections_raw.csv`
-- `exp2_importances_raw.csv`
+- `exp2_paths_raw.csv` (full custom SHAP-RFE elimination snapshots)
 
 ## Output files
 

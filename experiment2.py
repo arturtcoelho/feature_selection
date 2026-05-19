@@ -18,7 +18,6 @@ from tqdm import tqdm
 from xgboost import DMatrix, XGBRegressor
 
 from src.config import SEED, paths
-from src.data_loading import load_all_datasets_from_local
 from src.logging_utils import setup_logging
 
 
@@ -65,6 +64,24 @@ def _checkpoint_write(existing: pd.DataFrame, rows: list[dict], sels: list[dict]
     merged.to_csv(raw_path, index=False)
     pd.DataFrame(sels).to_csv(sel_path, index=False)
     pd.DataFrame(paths_rows).to_csv(path_path, index=False)
+
+
+def _load_superconductor_local(processed_dir: str) -> tuple[pd.DataFrame, np.ndarray, list[str]]:
+    path = Path(processed_dir) / "superconductor_processed.csv"
+    if not path.exists():
+        raise RuntimeError(f"Missing Superconductor processed file: {path}")
+    df = pd.read_csv(path)
+    target_col = "critical_temp"
+    if target_col not in df.columns:
+        raise RuntimeError(f"Target column {target_col} missing in {path}")
+    y = pd.to_numeric(df[target_col], errors="coerce")
+    X = df.drop(columns=[target_col]).apply(pd.to_numeric, errors="coerce")
+    clean = X.copy()
+    clean["target"] = y
+    clean = clean.dropna()
+    y_clean = clean.pop("target").to_numpy()
+    X_clean = clean
+    return X_clean, y_clean, list(X_clean.columns)
 
 
 def _build_shap_path(
@@ -162,13 +179,7 @@ def _select_from_path(path: list[dict], k_keep: int) -> tuple[list[str], dict]:
 
 
 def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple], preprocessed_dir: str, shap_step: int, shap_sample_ratio: float, shap_max_samples: int) -> tuple[list[dict], list[dict], list[dict], int]:
-    ds_all = load_all_datasets_from_local(preprocessed_dir)
-    ds = [d for d in ds_all if d["name"] == "Superconductor"]
-    if not ds:
-        raise RuntimeError("Superconductor not found")
-    X_df = ds[0]["X"].copy()
-    y = ds[0]["y"].to_numpy()
-    feature_names = list(X_df.columns)
+    X_df, y, feature_names = _load_superconductor_local(preprocessed_dir)
 
     rows: list[dict] = []
     sels: list[dict] = []
@@ -440,8 +451,7 @@ def run_stability(pmap: dict[str, Path]) -> None:
 
 
 def run_multicollinearity(pmap: dict[str, Path], preprocessed_dir: str) -> None:
-    ds = [d for d in load_all_datasets_from_local(preprocessed_dir) if d["name"] == "Superconductor"][0]
-    X = ds["X"]
+    X, _, _ = _load_superconductor_local(preprocessed_dir)
     sel = pd.read_csv(pmap["outputs"] / "exp2_selections_raw.csv")
     out = []
     for (strategy, k), g in sel.groupby(["strategy", "k_pct"]):
