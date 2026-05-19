@@ -1,0 +1,237 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Plantilla genérica para documento académico / TFM / tesis
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[12pt]{article}
+
+% Paquetes principales
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{titlesec}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{array}
+\usepackage{times}
+\usepackage{upgreek}
+\usepackage{todonotes}
+\usepackage{url}
+\usepackage{longtable}
+\usepackage{pdflscape}
+
+% Ruta de imágenes
+\graphicspath{{figures/}{imgs/}}
+
+% Nombre del índice
+\renewcommand{\contentsname}{Índice de contenido}
+
+% Espaciado
+\doublespacing
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Portada
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{titlepage}
+    \begin{center}
+        \vspace*{1cm}
+
+        \Huge
+        \textbf{Título del trabajo académico}\\
+
+        \vspace{0.5cm}
+
+        \LARGE
+        Subtítulo del trabajo, si aplica
+
+        \vspace{3cm}
+
+        \textbf{Alumno/a:}\\
+        Nombre del estudiante\\
+
+        \vspace{0.5cm}
+
+        \textbf{Tutor/a:}\\
+        Nombre del tutor o tutora\\
+
+        \vspace{1cm}
+
+        \textbf{Institución:}\\
+        Nombre de la universidad o institución\\
+
+        \vspace{0.5cm}
+
+        \textbf{Programa académico:}\\
+        Nombre del programa, máster, grado o asignatura\\
+
+        \vfill
+
+        \Large
+        Lugar y fecha
+
+    \end{center}
+\end{titlepage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Páginas preliminares
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagenumbering{roman}
+
+\begin{center}
+\LARGE
+\textbf{Agradecimientos}
+\end{center}
+
+Escriba aquí los agradecimientos del trabajo.
+
+\newpage
+
+\begin{center}
+\LARGE
+\textbf{Resumen}
+\end{center}
+
+Escriba aquí el resumen del trabajo. Debe presentar brevemente el problema abordado, el objetivo principal, la metodología utilizada, los resultados más relevantes y las conclusiones generales.
+
+\vspace{0.5cm}
+
+\textbf{Palabras clave:} palabra clave 1, palabra clave 2, palabra clave 3, palabra clave 4.
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Índices
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\tableofcontents
+\newpage
+
+\listoffigures
+\listoftables
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Cuerpo del documento
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagenumbering{arabic}
+
+\section{Introducción}
+
+En esta sección se presenta el contexto general del tema de estudio, la problemática abordada, la importancia del trabajo y una visión general de la estructura del documento.
+
+\subsection{Justificación y antecedentes}
+
+Explique aquí la relevancia del tema, los antecedentes principales, el problema identificado y la necesidad de desarrollar el estudio.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1.0\textwidth]{nombre-imagen.jpg}
+\caption{Descripción de la figura}
+\label{fig:ejemplo}
+\end{figure}
+
+\subsection{Objetivos del estudio}
+
+\subsubsection{Objetivo general}
+
+Describir el objetivo general del trabajo.
+
+\subsubsection{Objetivos específicos}
+
+\begin{itemize}
+    \item Describir el primer objetivo específico.
+    \item Describir el segundo objetivo específico.
+    \item Describir el tercer objetivo específico.
+\end{itemize}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Materiales y métodos
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Materiales y Métodos}
+
+En esta sección se describen los materiales, herramientas, tecnologías, fuentes de información y métodos utilizados para desarrollar el trabajo.
+
+\subsection{Estado del arte}
+
+Presente aquí una revisión de trabajos previos, enfoques existentes, herramientas relacionadas y fundamentos teóricos relevantes.
+
+\subsubsection{Tema o enfoque relacionado}
+
+Describa aquí un tema específico del estado del arte.
+
+\subsection{Metodología}
+
+Explique el procedimiento seguido para desarrollar el trabajo, incluyendo fases, técnicas, criterios de análisis y procesos de validación.
+
+\subsubsection{Descripción del método}
+
+Detalle el método utilizado, sus etapas y la forma en que se aplicó en el desarrollo del proyecto.
+
+\subsubsection{Caracterización de datos, repositorios o fuentes de información}
+
+Describa aquí cómo se analizaron, clasificaron o caracterizaron los datos, documentos, repositorios, registros u otros elementos utilizados.
+
+\subsubsection{Desarrollo e implementación de la herramienta o solución}
+
+Explique aquí el diseño, desarrollo, arquitectura, integración y funcionamiento de la herramienta, sistema, modelo o propuesta desarrollada.
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Resultados
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Resultados}
+
+En esta sección se presentan los resultados obtenidos durante el desarrollo, implementación o evaluación del trabajo.
+
+\subsection{Planificación del proyecto}
+
+Describa la planificación realizada, fases del proyecto, cronograma, tareas principales o metodología de gestión utilizada.
+
+\subsection{Análisis de datos, repositorios o casos de estudio}
+
+Presente los resultados del análisis realizado sobre los datos, repositorios, documentos o casos evaluados.
+
+\subsection{Ejemplo de uso de la solución desarrollada}
+
+Incluya un ejemplo práctico que muestre cómo se utiliza la herramienta, metodología o propuesta desarrollada.
+
+\subsection{Evaluación de los resultados}
+
+Presente los criterios de evaluación, métricas utilizadas, resultados obtenidos y análisis de la efectividad de la solución propuesta.
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Conclusiones y trabajo futuro
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conclusiones y Trabajo Futuro}
+
+En esta sección se resumen los principales hallazgos del trabajo, el cumplimiento de los objetivos y las aportaciones realizadas.
+
+\subsection{Discusión y limitaciones}
+
+Analice los resultados obtenidos, sus implicaciones, posibles limitaciones metodológicas, técnicas o prácticas, y aspectos que deben considerarse al interpretar los hallazgos.
+
+\subsection{Trabajo futuro}
+
+Describa posibles mejoras, nuevas líneas de investigación, funcionalidades adicionales o próximos pasos derivados del trabajo realizado.
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Bibliografía
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\bibliographystyle{plain}
+\bibliography{export}
+
+\end{document}

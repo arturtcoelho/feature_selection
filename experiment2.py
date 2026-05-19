@@ -112,16 +112,33 @@ def _shaprfecv_fit(
     from probatus.feature_elimination import ShapRFECV
 
     model = make_model(seed)
-    selector = ShapRFECV(
-        model=model,
-        step=max(1, int(step)),
-        cv=max(2, int(cv)),
-        scoring="neg_root_mean_squared_error",
-        n_jobs=1,
-        verbose=max(0, int(verbose)),
-    )
-    selector.fit_compute(X_train_df, y_train)
-    return selector
+    base_kwargs = {
+        "model": model,
+        "step": max(1, int(step)),
+        "cv": max(2, int(cv)),
+        "scoring": "neg_root_mean_squared_error",
+        "n_jobs": 1,
+        "verbose": max(0, int(verbose)),
+    }
+
+    selector = ShapRFECV(**base_kwargs)
+    try:
+        selector.fit_compute(X_train_df, y_train)
+        return selector
+    except TypeError as exc:
+        msg = str(exc)
+        if "cannot be analyzed directly with the given masker" not in msg:
+            raise
+        print(
+            "ShapRFECV fallback: retrying with tree explainer kwargs for XGBoost compatibility",
+            flush=True,
+        )
+        selector = ShapRFECV(
+            **base_kwargs,
+            shap_kwargs={"algorithm": "tree"},
+        )
+        selector.fit_compute(X_train_df, y_train)
+        return selector
 
 
 def _shaprfecv_take_k(selector, X_cols: list[str], k_keep: int) -> list[str]:
