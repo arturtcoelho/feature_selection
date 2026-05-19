@@ -27,23 +27,30 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--run-id", required=True)
     p.add_argument("--resume", action="store_true")
     p.add_argument("--quick", action="store_true")
-    p.add_argument("--workers", type=int, default=1)
+    p.add_argument("--workers", type=int, default=6)
     p.add_argument("--use-preprocessed-dir", default="pre_study/data/processed")
     p.add_argument("--shap-step", type=int, default=5)
     p.add_argument("--shap-sample-ratio", type=float, default=0.10)
     p.add_argument("--shap-max-samples", type=int, default=1600)
+    p.add_argument("--xgb-jobs", type=int, default=2, help="Threads per XGBoost fit (set low when using workers)")
+    p.add_argument("--no-gpu", action="store_true", help="Force CPU mode for XGBoost")
     return p.parse_args()
 
 
-def make_model(seed: int) -> XGBRegressor:
+def make_model(seed: int, xgb_jobs: int, use_gpu: bool) -> XGBRegressor:
+    params = {
+        "objective": "reg:squarederror",
+        "n_estimators": 200,
+        "learning_rate": 0.05,
+        "random_state": seed,
+        "verbosity": 0,
+        "n_jobs": max(1, int(xgb_jobs)),
+        "tree_method": "hist",
+    }
+    if use_gpu:
+        params["device"] = "cuda"
     return XGBRegressor(
-        objective="reg:squarederror",
-        n_estimators=200,
-        learning_rate=0.05,
-        random_state=seed,
-        verbosity=0,
-        n_jobs=-1,
-        tree_method="hist",
+        **params,
     )
 
 
@@ -93,6 +100,8 @@ def _build_shap_path(
     shap_step: int,
     shap_sample_ratio: float,
     shap_max_samples: int,
+    xgb_jobs: int,
+    use_gpu: bool,
     progress_callback=None,
 ) -> list[dict]:
     current = list(X_train_df.columns)
@@ -107,7 +116,7 @@ def _build_shap_path(
         if progress_callback is not None:
             progress_callback(step_idx, total_steps)
         t0 = time.perf_counter()
-        model = make_model(seed)
+        model = make_model(seed, xgb_jobs, use_gpu)
         model.fit(X_train_df[current], y_train)
         fit_time_s = time.perf_counter() - t0
 
@@ -178,35 +187,49 @@ def _select_from_path(path: list[dict], k_keep: int) -> tuple[list[str], dict]:
     return snap["features"][:k_keep], snap
 
 
-def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple], preprocessed_dir: str, shap_step: int, shap_sample_ratio: float, shap_max_samples: int) -> tuple[list[dict], list[dict], list[dict], int]:
+def _run_strategy_job(
+    seed: int,
+    fold: int,
+    folds: int,
+    strategy: str,
+    k_levels: list[float],
+    done: set[tuple],
+    preprocessed_dir: str,
+    shap_step: int,
+    shap_sample_ratio: float,
+    shap_max_samples: int,
+    xgb_jobs: int,
+    use_gpu: bool,
+) -> tuple[list[dict], list[dict], list[dict], int]:
     X_df, y, feature_names = _load_superconductor_local(preprocessed_dir)
 
     rows: list[dict] = []
     sels: list[dict] = []
     paths_rows: list[dict] = []
-    exp_done = 0
     kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
+    splits = list(kf.split(X_df))
+    tr, te = splits[fold - 1]
+    X_tr_raw = X_df.iloc[tr].to_numpy()
+    X_te_raw = X_df.iloc[te].to_numpy()
+    y_tr = y[tr]
+    y_te = y[te]
 
-    for fold, (tr, te) in enumerate(kf.split(X_df), 1):
-        print(f"repeat_seed={seed} | fold={fold} | start", flush=True)
-        X_tr_raw = X_df.iloc[tr].to_numpy()
-        X_te_raw = X_df.iloc[te].to_numpy()
-        y_tr = y[tr]
-        y_te = y[te]
+    scaler = StandardScaler()
+    X_tr = scaler.fit_transform(X_tr_raw)
+    X_te = scaler.transform(X_te_raw)
+    X_tr_df = pd.DataFrame(X_tr, columns=feature_names)
+    X_te_df = pd.DataFrame(X_te, columns=feature_names)
 
-        scaler = StandardScaler()
-        X_tr = scaler.fit_transform(X_tr_raw)
-        X_te = scaler.transform(X_te_raw)
-        X_tr_df = pd.DataFrame(X_tr, columns=feature_names)
-        X_te_df = pd.DataFrame(X_te, columns=feature_names)
+    n_feat = len(feature_names)
+    fi_model = make_model(seed, xgb_jobs, use_gpu)
+    fi_model.fit(X_tr, y_tr)
+    fi_order = np.argsort(fi_model.feature_importances_)[::-1]
+    fi_rank = [feature_names[i] for i in fi_order]
 
-        n_feat = len(feature_names)
-        fi_model = make_model(seed)
-        fi_model.fit(X_tr, y_tr)
-        fi_order = np.argsort(fi_model.feature_importances_)[::-1]
-        fi_rank = [feature_names[i] for i in fi_order]
-
-        print(f"repeat_seed={seed} | fold={fold} | custom_shap_rfe | build full path", flush=True)
+    strat_label = "fi" if strategy == "native_fi" else ("shaprfe" if strategy == "custom_shap_rfe" else "hybrid")
+    if strategy == "native_fi":
+        print(f"repeat: {seed} | fold: {fold}/{folds} | strat: {strat_label} | progress: n/a", flush=True)
+    elif strategy == "custom_shap_rfe":
         full_path = _build_shap_path(
             X_tr_df,
             y_tr,
@@ -216,122 +239,103 @@ def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple
             shap_step,
             shap_sample_ratio,
             shap_max_samples,
-            progress_callback=lambda i, t: print(
-                f"repeat: {seed} | fold: {fold}/{folds} | strat: shaprfe | progress: {i}/{t}",
-                flush=True,
-            ),
+            xgb_jobs,
+            use_gpu,
+            progress_callback=lambda i, t: print(f"repeat: {seed} | fold: {fold}/{folds} | strat: shaprfe | progress: {i}/{t}", flush=True),
         )
-        path_cache: dict[tuple[str, ...], list[dict]] = {}
+    else:
+        print(f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: 0/{len(k_levels)}", flush=True)
+        full_path = []
 
-        for strategy in ["native_fi", "custom_shap_rfe", "hybrid_fi_custom_shap_rfe"]:
-            strat_label = "fi" if strategy == "native_fi" else ("shaprfe" if strategy == "custom_shap_rfe" else "hybrid")
-            if strategy == "native_fi":
-                print(f"repeat: {seed} | fold: {fold}/{folds} | strat: {strat_label} | progress: n/a", flush=True)
-            elif strategy == "hybrid_fi_custom_shap_rfe":
-                print(f"repeat: {seed} | fold: {fold}/{folds} | strat: {strat_label} | progress: 0/{len(k_levels)}", flush=True)
+    path_cache: dict[tuple[str, ...], list[dict]] = {}
+    hybrid_k_done = 0
+    strategy_has_work = False
+    for k in k_levels:
+        key = (strategy, float(k), fold, seed)
+        if key in done:
+            if strategy == "hybrid_fi_custom_shap_rfe":
+                hybrid_k_done += 1
+                print(f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: {hybrid_k_done}/{len(k_levels)}", flush=True)
+            continue
+        strategy_has_work = True
 
-            strategy_has_work = False
-            hybrid_k_done = 0
-            for k in k_levels:
-                key = (strategy, float(k), fold, seed)
-                if key in done:
-                    if strategy == "hybrid_fi_custom_shap_rfe":
-                        hybrid_k_done += 1
-                        print(
-                            f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: {hybrid_k_done}/{len(k_levels)}",
-                            flush=True,
-                        )
-                    continue
-
-                strategy_has_work = True
-
-                k_keep = max(1, int(round(n_feat * k)))
-                sel_t0 = time.perf_counter()
-
-                if strategy == "native_fi":
-                    selected = fi_rank[:k_keep]
-                    stage_fi_keep = selected.copy()
-                    stage_shap_keep = selected.copy()
-                    snap = None
-                elif strategy == "custom_shap_rfe":
-                    selected, snap = _select_from_path(full_path, k_keep)
-                    stage_fi_keep = feature_names.copy()
-                    stage_shap_keep = selected.copy()
-                else:
-                    n_drop = n_feat - k_keep
-                    drop_fi = int(np.ceil(n_drop / 2.0))
-                    keep_after_fi = [f for f in fi_rank if f not in set(fi_rank[-drop_fi:])]
-                    pool_key = tuple(keep_after_fi)
-                    if pool_key not in path_cache:
-                        print(f"repeat_seed={seed} | fold={fold} | hybrid path build | pool={len(keep_after_fi)}", flush=True)
-                        path_cache[pool_key] = _build_shap_path(
-                            X_tr_df[keep_after_fi],
-                            y_tr,
-                            X_te_df[keep_after_fi],
-                            y_te,
-                            seed,
-                            shap_step,
-                            shap_sample_ratio,
-                            shap_max_samples,
-                            progress_callback=None,
-                        )
-                    selected, snap = _select_from_path(path_cache[pool_key], k_keep)
-                    stage_fi_keep = keep_after_fi
-                    stage_shap_keep = selected.copy()
-                    hybrid_k_done += 1
-                    print(
-                        f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: {hybrid_k_done}/{len(k_levels)}",
-                        flush=True,
-                    )
-
-                selection_time_s = time.perf_counter() - sel_t0
-                model = make_model(seed)
-                tfit = time.perf_counter()
-                model.fit(X_tr_df[selected], y_tr)
-                fit_time_s = time.perf_counter() - tfit
-                tpred = time.perf_counter()
-                pred = model.predict(X_te_df[selected])
-                pred_time_s = time.perf_counter() - tpred
-
-                rows.append(
-                    {
-                        "dataset": "Superconductor",
-                        "model": "xgboost",
-                        "strategy": strategy,
-                        "k_pct": float(k),
-                        "fold": fold,
-                        "repeat_seed": seed,
-                        "rmse": float(root_mean_squared_error(y_te, pred)),
-                        "mae": float(mean_absolute_error(y_te, pred)),
-                        "mape": _safe_mape(y_te, pred),
-                        "mse": float(mean_squared_error(y_te, pred)),
-                        "selection_time_s": float(selection_time_s),
-                        "train_time_s": float(fit_time_s),
-                        "predict_time_s": float(pred_time_s),
-                        "total_time_s": float(selection_time_s + fit_time_s + pred_time_s),
-                    }
+        k_keep = max(1, int(round(n_feat * k)))
+        sel_t0 = time.perf_counter()
+        if strategy == "native_fi":
+            selected = fi_rank[:k_keep]
+            stage_fi_keep = selected.copy()
+            stage_shap_keep = selected.copy()
+        elif strategy == "custom_shap_rfe":
+            selected, _ = _select_from_path(full_path, k_keep)
+            stage_fi_keep = feature_names.copy()
+            stage_shap_keep = selected.copy()
+        else:
+            n_drop = n_feat - k_keep
+            drop_fi = int(np.ceil(n_drop / 2.0))
+            keep_after_fi = [f for f in fi_rank if f not in set(fi_rank[-drop_fi:])]
+            pool_key = tuple(keep_after_fi)
+            if pool_key not in path_cache:
+                path_cache[pool_key] = _build_shap_path(
+                    X_tr_df[keep_after_fi],
+                    y_tr,
+                    X_te_df[keep_after_fi],
+                    y_te,
+                    seed,
+                    shap_step,
+                    shap_sample_ratio,
+                    shap_max_samples,
+                    xgb_jobs,
+                    use_gpu,
+                    progress_callback=None,
                 )
-                sels.append(
-                    {
-                        "dataset": "Superconductor",
-                        "model": "xgboost",
-                        "strategy": strategy,
-                        "k_pct": float(k),
-                        "fold": fold,
-                        "repeat_seed": seed,
-                        "n_features_total": n_feat,
-                        "n_features_selected": len(selected),
-                        "n_features_after_fi_stage": len(stage_fi_keep),
-                        "n_features_after_shap_stage": len(stage_shap_keep),
-                        "selected_features_fi_stage": "|".join(stage_fi_keep),
-                        "selected_features_shap_stage": "|".join(stage_shap_keep),
-                        "selected_features": "|".join(selected),
-                    }
-                )
+            selected, _ = _select_from_path(path_cache[pool_key], k_keep)
+            stage_fi_keep = keep_after_fi
+            stage_shap_keep = selected.copy()
+            hybrid_k_done += 1
+            print(f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: {hybrid_k_done}/{len(k_levels)}", flush=True)
 
-            if strategy_has_work:
-                exp_done += 1
+        selection_time_s = time.perf_counter() - sel_t0
+        model = make_model(seed, xgb_jobs, use_gpu)
+        tfit = time.perf_counter()
+        model.fit(X_tr_df[selected], y_tr)
+        fit_time_s = time.perf_counter() - tfit
+        tpred = time.perf_counter()
+        pred = model.predict(X_te_df[selected])
+        pred_time_s = time.perf_counter() - tpred
 
+        rows.append({
+            "dataset": "Superconductor",
+            "model": "xgboost",
+            "strategy": strategy,
+            "k_pct": float(k),
+            "fold": fold,
+            "repeat_seed": seed,
+            "rmse": float(root_mean_squared_error(y_te, pred)),
+            "mae": float(mean_absolute_error(y_te, pred)),
+            "mape": _safe_mape(y_te, pred),
+            "mse": float(mean_squared_error(y_te, pred)),
+            "selection_time_s": float(selection_time_s),
+            "train_time_s": float(fit_time_s),
+            "predict_time_s": float(pred_time_s),
+            "total_time_s": float(selection_time_s + fit_time_s + pred_time_s),
+        })
+        sels.append({
+            "dataset": "Superconductor",
+            "model": "xgboost",
+            "strategy": strategy,
+            "k_pct": float(k),
+            "fold": fold,
+            "repeat_seed": seed,
+            "n_features_total": n_feat,
+            "n_features_selected": len(selected),
+            "n_features_after_fi_stage": len(stage_fi_keep),
+            "n_features_after_shap_stage": len(stage_shap_keep),
+            "selected_features_fi_stage": "|".join(stage_fi_keep),
+            "selected_features_shap_stage": "|".join(stage_shap_keep),
+            "selected_features": "|".join(selected),
+        })
+
+    if strategy == "custom_shap_rfe":
         for snap in full_path:
             paths_rows.append(
                 {
@@ -354,12 +358,10 @@ def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple
                 }
             )
 
-        print(f"repeat_seed={seed} | fold={fold} | done", flush=True)
-
-    return rows, sels, paths_rows, exp_done
+    return rows, sels, paths_rows, (1 if strategy_has_work else 0)
 
 
-def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocessed_dir: str, workers: int, shap_step: int, shap_sample_ratio: float, shap_max_samples: int) -> None:
+def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocessed_dir: str, workers: int, shap_step: int, shap_sample_ratio: float, shap_max_samples: int, xgb_jobs: int, use_gpu: bool) -> None:
     repeats = [42, 123] if quick else [42, 123, 256, 512, 999]
     folds = 2 if quick else 10
     k_levels = [0.5, 1.0] if quick else [0.05, 0.10, 0.15, 0.25, 0.50, 1.0]
@@ -390,24 +392,28 @@ def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocess
     logging.info("k levels: %s", ", ".join([str(x) for x in k_levels]))
     logging.info("repeats=%s folds=%d workers=%d", repeats, folds, workers)
     logging.info("custom SHAP-RFE config: step=%d sample_ratio=%.3f max_samples=%d", shap_step, shap_sample_ratio, shap_max_samples)
+    logging.info("xgboost threads per fit: %d", xgb_jobs)
+    logging.info("xgboost device: %s", "cuda" if use_gpu else "cpu")
     logging.info("planned experiments=%d | remaining experiments=%d", total_experiments, remaining_experiments)
 
     pbar = tqdm(total=remaining_experiments, desc="Experiment2 repeat-fold-strategy", unit="exp")
 
+    tasks = [(seed, fold, strategy) for seed in repeats for fold in range(1, folds + 1) for strategy in ["native_fi", "custom_shap_rfe", "hybrid_fi_custom_shap_rfe"]]
+
     if workers <= 1:
-        for seed in repeats:
-            r, s, pth, exp_done = _run_seed_task(seed, folds, k_levels, done, preprocessed_dir, shap_step, shap_sample_ratio, shap_max_samples)
+        for seed, fold, strategy in tasks:
+            r, s, pth, exp_done = _run_strategy_job(seed, fold, folds, strategy, k_levels, done, preprocessed_dir, shap_step, shap_sample_ratio, shap_max_samples, xgb_jobs, use_gpu)
             rows.extend(r)
             sels.extend(s)
             paths_rows.extend(pth)
             pbar.update(exp_done)
             _checkpoint_write(existing, rows, sels, paths_rows, raw_path, sel_path, path_path)
-            logging.info("seed done=%d accumulated rows=%d", seed, len(rows))
+            logging.info("job done seed=%d fold=%d strat=%s rows_total=%d", seed, fold, strategy, len(rows))
     else:
         with ProcessPoolExecutor(max_workers=workers) as ex:
             futs = [
-                ex.submit(_run_seed_task, seed, folds, k_levels, done, preprocessed_dir, shap_step, shap_sample_ratio, shap_max_samples)
-                for seed in repeats
+                ex.submit(_run_strategy_job, seed, fold, folds, strategy, k_levels, done, preprocessed_dir, shap_step, shap_sample_ratio, shap_max_samples, xgb_jobs, use_gpu)
+                for seed, fold, strategy in tasks
             ]
             completed = 0
             for fut in as_completed(futs):
@@ -418,7 +424,7 @@ def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocess
                 pbar.update(exp_done)
                 _checkpoint_write(existing, rows, sels, paths_rows, raw_path, sel_path, path_path)
                 completed += 1
-                logging.info("seed tasks done %d/%d (+%d rows, total=%d)", completed, len(futs), len(r), len(rows))
+                logging.info("experiment jobs done %d/%d (+%d rows, total=%d)", completed, len(futs), len(r), len(rows))
 
     pbar.close()
 
@@ -526,6 +532,12 @@ def main() -> None:
 
     logging.info("Experiment 2 run root: %s", pmap["root"])
     logging.info("Experiment 2 is fixed to dataset=Superconductor and model=xgboost")
+    if args.workers > 1 and args.xgb_jobs > 1:
+        logging.warning(
+            "High contention config detected (workers=%d, xgb_jobs=%d). Consider xgb_jobs=1 for stable throughput.",
+            args.workers,
+            args.xgb_jobs,
+        )
 
     if args.step in ["all", "experiments"]:
         run_experiments(
@@ -537,6 +549,8 @@ def main() -> None:
             shap_step=max(1, args.shap_step),
             shap_sample_ratio=float(args.shap_sample_ratio),
             shap_max_samples=max(50, int(args.shap_max_samples)),
+            xgb_jobs=max(1, int(args.xgb_jobs)),
+            use_gpu=not args.no_gpu,
         )
     if args.step in ["all", "summary"]:
         run_summary(pmap)
