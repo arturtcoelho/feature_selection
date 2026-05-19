@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import fcntl
 import logging
 from pathlib import Path
 import random
@@ -66,11 +67,17 @@ def _jaccard(a: set[str], b: set[str]) -> float:
     return len(a & b) / len(u) if u else 0.0
 
 
-def _checkpoint_write(existing: pd.DataFrame, rows: list[dict], sels: list[dict], paths_rows: list[dict], raw_path: Path, sel_path: Path, path_path: Path) -> None:
-    merged = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True) if rows else existing
-    merged.to_csv(raw_path, index=False)
-    pd.DataFrame(sels).to_csv(sel_path, index=False)
-    pd.DataFrame(paths_rows).to_csv(path_path, index=False)
+def _append_csv_locked(df: pd.DataFrame, target: Path, lock_path: Path) -> None:
+    if df.empty:
+        return
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w", encoding="utf-8") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        file_exists = target.exists() and target.stat().st_size > 0
+        with open(target, "a", encoding="utf-8", newline="") as out:
+            df.to_csv(out, index=False, header=not file_exists)
+            out.flush()
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
 def _load_superconductor_local(processed_dir: str) -> tuple[pd.DataFrame, np.ndarray, list[str]]:
@@ -179,6 +186,8 @@ def _build_shap_path(
 
 
 def _select_from_path(path: list[dict], k_keep: int) -> tuple[list[str], dict]:
+    if not path:
+        raise ValueError("Selection path is empty; cannot select features")
     eligible = [s for s in path if s["n_features"] >= k_keep]
     if not eligible:
         snap = path[-1]
@@ -200,7 +209,13 @@ def _run_strategy_job(
     shap_max_samples: int,
     xgb_jobs: int,
     use_gpu: bool,
-) -> tuple[list[dict], list[dict], list[dict], int]:
+    raw_path_str: str,
+    sel_path_str: str,
+    path_out_str: str,
+    lock_raw_str: str,
+    lock_sel_str: str,
+    lock_path_str: str,
+) -> tuple[int, int]:
     X_df, y, feature_names = _load_superconductor_local(preprocessed_dir)
 
     rows: list[dict] = []
@@ -227,6 +242,7 @@ def _run_strategy_job(
     fi_rank = [feature_names[i] for i in fi_order]
 
     strat_label = "fi" if strategy == "native_fi" else ("shaprfe" if strategy == "custom_shap_rfe" else "hybrid")
+    full_path: list[dict] = []
     if strategy == "native_fi":
         print(f"repeat: {seed} | fold: {fold}/{folds} | strat: {strat_label} | progress: n/a", flush=True)
     elif strategy == "custom_shap_rfe":
@@ -245,7 +261,6 @@ def _run_strategy_job(
         )
     else:
         print(f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: 0/{len(k_levels)}", flush=True)
-        full_path = []
 
     path_cache: dict[tuple[str, ...], list[dict]] = {}
     hybrid_k_done = 0
@@ -273,6 +288,8 @@ def _run_strategy_job(
             n_drop = n_feat - k_keep
             drop_fi = int(np.ceil(n_drop / 2.0))
             keep_after_fi = [f for f in fi_rank if f not in set(fi_rank[-drop_fi:])]
+            if not keep_after_fi:
+                keep_after_fi = [fi_rank[0]]
             pool_key = tuple(keep_after_fi)
             if pool_key not in path_cache:
                 path_cache[pool_key] = _build_shap_path(
@@ -288,7 +305,8 @@ def _run_strategy_job(
                     use_gpu,
                     progress_callback=None,
                 )
-            selected, _ = _select_from_path(path_cache[pool_key], k_keep)
+            k_keep_hybrid = min(k_keep, len(keep_after_fi))
+            selected, _ = _select_from_path(path_cache[pool_key], k_keep_hybrid)
             stage_fi_keep = keep_after_fi
             stage_shap_keep = selected.copy()
             hybrid_k_done += 1
@@ -358,7 +376,10 @@ def _run_strategy_job(
                 }
             )
 
-    return rows, sels, paths_rows, (1 if strategy_has_work else 0)
+    _append_csv_locked(pd.DataFrame(rows), Path(raw_path_str), Path(lock_raw_str))
+    _append_csv_locked(pd.DataFrame(sels), Path(sel_path_str), Path(lock_sel_str))
+    _append_csv_locked(pd.DataFrame(paths_rows), Path(path_out_str), Path(lock_path_str))
+    return (1 if strategy_has_work else 0), len(rows)
 
 
 def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocessed_dir: str, workers: int, shap_step: int, shap_sample_ratio: float, shap_max_samples: int, xgb_jobs: int, use_gpu: bool) -> None:
@@ -384,10 +405,6 @@ def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocess
                 if any((strategy, float(k), fold, seed) not in done for k in k_levels):
                     remaining_experiments += 1
 
-    rows: list[dict] = []
-    sels: list[dict] = []
-    paths_rows: list[dict] = []
-
     logging.info("Experiment 2 scope locked: dataset=Superconductor, model=xgboost")
     logging.info("k levels: %s", ", ".join([str(x) for x in k_levels]))
     logging.info("repeats=%s folds=%d workers=%d", repeats, folds, workers)
@@ -399,32 +416,70 @@ def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocess
     pbar = tqdm(total=remaining_experiments, desc="Experiment2 repeat-fold-strategy", unit="exp")
 
     tasks = [(seed, fold, strategy) for seed in repeats for fold in range(1, folds + 1) for strategy in ["native_fi", "custom_shap_rfe", "hybrid_fi_custom_shap_rfe"]]
+    lock_raw = pmap["outputs"] / "exp2_results_raw.csv.lock"
+    lock_sel = pmap["outputs"] / "exp2_selections_raw.csv.lock"
+    lock_path = pmap["outputs"] / "exp2_paths_raw.csv.lock"
+
+    total_rows = 0
 
     if workers <= 1:
         for seed, fold, strategy in tasks:
-            r, s, pth, exp_done = _run_strategy_job(seed, fold, folds, strategy, k_levels, done, preprocessed_dir, shap_step, shap_sample_ratio, shap_max_samples, xgb_jobs, use_gpu)
-            rows.extend(r)
-            sels.extend(s)
-            paths_rows.extend(pth)
+            exp_done, rows_written = _run_strategy_job(
+                seed,
+                fold,
+                folds,
+                strategy,
+                k_levels,
+                done,
+                preprocessed_dir,
+                shap_step,
+                shap_sample_ratio,
+                shap_max_samples,
+                xgb_jobs,
+                use_gpu,
+                str(raw_path),
+                str(sel_path),
+                str(path_path),
+                str(lock_raw),
+                str(lock_sel),
+                str(lock_path),
+            )
+            total_rows += rows_written
             pbar.update(exp_done)
-            _checkpoint_write(existing, rows, sels, paths_rows, raw_path, sel_path, path_path)
-            logging.info("job done seed=%d fold=%d strat=%s rows_total=%d", seed, fold, strategy, len(rows))
+            logging.info("job done seed=%d fold=%d strat=%s rows_written=%d total_rows=%d", seed, fold, strategy, rows_written, total_rows)
     else:
         with ProcessPoolExecutor(max_workers=workers) as ex:
             futs = [
-                ex.submit(_run_strategy_job, seed, fold, folds, strategy, k_levels, done, preprocessed_dir, shap_step, shap_sample_ratio, shap_max_samples, xgb_jobs, use_gpu)
+                ex.submit(
+                    _run_strategy_job,
+                    seed,
+                    fold,
+                    folds,
+                    strategy,
+                    k_levels,
+                    done,
+                    preprocessed_dir,
+                    shap_step,
+                    shap_sample_ratio,
+                    shap_max_samples,
+                    xgb_jobs,
+                    use_gpu,
+                    str(raw_path),
+                    str(sel_path),
+                    str(path_path),
+                    str(lock_raw),
+                    str(lock_sel),
+                    str(lock_path),
+                )
                 for seed, fold, strategy in tasks
             ]
             completed = 0
             for fut in as_completed(futs):
-                r, s, pth, exp_done = fut.result()
-                rows.extend(r)
-                sels.extend(s)
-                paths_rows.extend(pth)
+                exp_done, rows_written = fut.result()
+                total_rows += rows_written
                 pbar.update(exp_done)
-                _checkpoint_write(existing, rows, sels, paths_rows, raw_path, sel_path, path_path)
                 completed += 1
-                logging.info("experiment jobs done %d/%d (+%d rows, total=%d)", completed, len(futs), len(r), len(rows))
+                logging.info("experiment jobs done %d/%d (+%d rows, total=%d)", completed, len(futs), rows_written, total_rows)
 
     pbar.close()
 
