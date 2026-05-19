@@ -11,11 +11,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import shap
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error, root_mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler
-from xgboost import XGBRegressor
+from xgboost import DMatrix, XGBRegressor
 
 from src.config import SEED, paths
 from src.data_loading import load_all_datasets_from_local
@@ -101,11 +100,21 @@ def _build_shap_path(
         X_shap = X_val_df[current].iloc[idx]
 
         t1 = time.perf_counter()
-        explainer = shap.TreeExplainer(model, data=X_shap, feature_perturbation="interventional")
-        shap_vals = explainer.shap_values(X_shap, check_additivity=False)
+        try:
+            dmat = DMatrix(X_shap.to_numpy(), feature_names=current)
+            contribs = model.get_booster().predict(dmat, pred_contribs=True)
+            shap_vals = contribs[:, :-1]
+            scores = np.mean(np.abs(shap_vals), axis=0)
+        except Exception as exc:  # noqa: BLE001
+            logging.warning(
+                "XGBoost pred_contribs failed at n_features=%d (seed=%d). Falling back to feature_importances_. Error: %s",
+                len(current),
+                seed,
+                exc,
+            )
+            scores = model.feature_importances_
         shap_time_s = time.perf_counter() - t1
 
-        scores = np.mean(np.abs(shap_vals), axis=0)
         order = np.argsort(scores)[::-1]
         ranked = [current[i] for i in order]
         ranked_scores = [float(scores[i]) for i in order]
