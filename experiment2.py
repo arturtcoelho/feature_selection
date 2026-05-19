@@ -44,6 +44,8 @@ def make_model(seed: int) -> XGBRegressor:
     return XGBRegressor(
         n_estimators=200,
         learning_rate=0.05,
+        objective="reg:squarederror",
+        base_score=0.5,
         random_state=seed,
         verbosity=0,
         n_jobs=-1,
