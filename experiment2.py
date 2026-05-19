@@ -5,6 +5,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import logging
 import random
 import time
+from typing import Any
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -133,11 +134,8 @@ def _shaprfecv_fit(
             "ShapRFECV fallback: retrying with tree explainer kwargs for XGBoost compatibility",
             flush=True,
         )
-        selector = ShapRFECV(
-            **base_kwargs,
-            shap_kwargs={"algorithm": "tree"},
-        )
-        selector.fit_compute(X_train_df, y_train)
+        selector = ShapRFECV(**base_kwargs)
+        selector.fit_compute(X_train_df, y_train, algorithm="tree")
         return selector
 
 
