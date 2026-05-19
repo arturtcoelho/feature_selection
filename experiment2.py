@@ -3,10 +3,9 @@ from __future__ import annotations
 import argparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import logging
+from pathlib import Path
 import random
 import time
-from typing import Any
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,30 +21,26 @@ from src.config import SEED, paths
 from src.data_loading import load_all_datasets_from_local
 from src.logging_utils import setup_logging
 
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Experiment 2: Superconductor + XGBoost feature-selection study")
-    parser.add_argument(
-        "--step",
-        choices=["all", "experiments", "summary", "stability", "multicollinearity", "figures", "analysis"],
-        default="all",
-    )
-    parser.add_argument("--run-id", type=str, required=True)
-    parser.add_argument("--resume", action="store_true")
-    parser.add_argument("--quick", action="store_true", help="2 folds x 2 repeats x k=[0.5,1.0]")
-    parser.add_argument("--workers", type=int, default=1, help="Parallel workers for fold/repeat tasks")
-    parser.add_argument("--shaprfecv-step", type=int, default=1, help="Features removed per ShapRFECV iteration")
-    parser.add_argument("--shaprfecv-verbose", type=int, default=0, help="ShapRFECV verbosity level")
-    parser.add_argument("--shaprfecv-cv", type=int, default=3, help="Inner CV folds used by ShapRFECV")
-    parser.add_argument("--use-preprocessed-dir", type=str, default="pre_study/data/processed")
-    return parser.parse_args()
+    p = argparse.ArgumentParser(description="Experiment 2: Superconductor + XGBoost + custom SHAP-RFE")
+    p.add_argument("--step", choices=["all", "experiments", "summary", "stability", "multicollinearity", "figures", "analysis"], default="all")
+    p.add_argument("--run-id", required=True)
+    p.add_argument("--resume", action="store_true")
+    p.add_argument("--quick", action="store_true")
+    p.add_argument("--workers", type=int, default=1)
+    p.add_argument("--use-preprocessed-dir", default="pre_study/data/processed")
+    p.add_argument("--shap-step", type=int, default=5)
+    p.add_argument("--shap-sample-ratio", type=float, default=0.10)
+    p.add_argument("--shap-max-samples", type=int, default=1600)
+    return p.parse_args()
 
 
 def make_model(seed: int) -> XGBRegressor:
     return XGBRegressor(
+        objective="reg:squarederror",
         n_estimators=200,
         learning_rate=0.05,
-        objective="reg:squarederror",
-        base_score=0.5,
         random_state=seed,
         verbosity=0,
         n_jobs=-1,
@@ -65,330 +60,252 @@ def _jaccard(a: set[str], b: set[str]) -> float:
     return len(a & b) / len(u) if u else 0.0
 
 
-def _fi_rank(X_train: np.ndarray, y_train: np.ndarray, feature_names: list[str], seed: int) -> list[str]:
-    model = make_model(seed)
-    model.fit(X_train, y_train)
-    order = np.argsort(model.feature_importances_)[::-1]
-    return [feature_names[i] for i in order]
+def _checkpoint_write(existing: pd.DataFrame, rows: list[dict], sels: list[dict], paths_rows: list[dict], raw_path: Path, sel_path: Path, path_path: Path) -> None:
+    merged = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True) if rows else existing
+    merged.to_csv(raw_path, index=False)
+    pd.DataFrame(sels).to_csv(sel_path, index=False)
+    pd.DataFrame(paths_rows).to_csv(path_path, index=False)
 
 
-def _shaprfecv_select(
+def _build_shap_path(
     X_train_df: pd.DataFrame,
     y_train: np.ndarray,
-    k_keep: int,
+    X_val_df: pd.DataFrame,
+    y_val: np.ndarray,
     seed: int,
-    step: int,
-    verbose: int,
-    cv: int,
-) -> list[str]:
-    from probatus.feature_elimination import ShapRFECV
+    shap_step: int,
+    shap_sample_ratio: float,
+    shap_max_samples: int,
+) -> list[dict]:
+    current = list(X_train_df.columns)
+    path = []
+    step = max(1, int(shap_step))
+    rng = np.random.default_rng(seed)
 
-    model = make_model(seed)
-    selector = ShapRFECV(
-        model=model,
-        step=max(1, int(step)),
-        cv=max(2, int(cv)),
-        scoring="neg_root_mean_squared_error",
-        n_jobs=1,
-        verbose=max(0, int(verbose)),
-    )
-    selector.fit_compute(X_train_df, y_train)
-    try:
-        selected = selector.get_reduced_features_set(num_features=k_keep)
-    except TypeError:
-        selected = selector.get_reduced_features_set(k_keep)
-    selected = list(selected)
-    if len(selected) < k_keep:
-        missing = [c for c in X_train_df.columns if c not in selected]
-        selected.extend(missing[: k_keep - len(selected)])
-    return selected[:k_keep]
+    while len(current) >= 1:
+        t0 = time.perf_counter()
+        model = make_model(seed)
+        model.fit(X_train_df[current], y_train)
+        fit_time_s = time.perf_counter() - t0
 
+        pred = model.predict(X_val_df[current])
+        rmse = float(root_mean_squared_error(y_val, pred))
+        mae = float(mean_absolute_error(y_val, pred))
+        mape = _safe_mape(y_val, pred)
+        mse = float(mean_squared_error(y_val, pred))
 
-def _shaprfecv_fit(
-    X_train_df: pd.DataFrame,
-    y_train: np.ndarray,
-    seed: int,
-    step: int,
-    verbose: int,
-    cv: int,
-):
-    from probatus.feature_elimination import ShapRFECV
+        n_val = X_val_df.shape[0]
+        n_shap = min(shap_max_samples, max(50, int(round(n_val * shap_sample_ratio))))
+        n_shap = min(n_shap, n_val)
+        idx = rng.choice(n_val, size=n_shap, replace=False)
+        X_shap = X_val_df[current].iloc[idx]
 
-    model = make_model(seed)
-    base_kwargs = {
-        "model": model,
-        "step": max(1, int(step)),
-        "cv": max(2, int(cv)),
-        "scoring": "neg_root_mean_squared_error",
-        "n_jobs": 1,
-        "verbose": max(0, int(verbose)),
-    }
+        t1 = time.perf_counter()
+        explainer = shap.TreeExplainer(model, data=X_shap, feature_perturbation="interventional")
+        shap_vals = explainer.shap_values(X_shap, check_additivity=False)
+        shap_time_s = time.perf_counter() - t1
 
-    selector = ShapRFECV(**base_kwargs)
-    try:
-        selector.fit_compute(X_train_df, y_train)
-        return selector
-    except TypeError as exc:
-        msg = str(exc)
-        if "cannot be analyzed directly with the given masker" not in msg:
-            raise
-        print(
-            "ShapRFECV fallback: retrying with tree explainer kwargs for XGBoost compatibility",
-            flush=True,
-        )
-        selector = ShapRFECV(**base_kwargs)
-        selector.fit_compute(X_train_df, y_train, algorithm="tree")
-        return selector
+        scores = np.mean(np.abs(shap_vals), axis=0)
+        order = np.argsort(scores)[::-1]
+        ranked = [current[i] for i in order]
+        ranked_scores = [float(scores[i]) for i in order]
 
+        drop_n = min(step, max(1, len(current) - 1)) if len(current) > 1 else 0
+        dropped = ranked[-drop_n:] if drop_n > 0 else []
 
-def _shaprfecv_take_k(selector, X_cols: list[str], k_keep: int) -> list[str]:
-    try:
-        selected = selector.get_reduced_features_set(num_features=k_keep)
-    except TypeError:
-        selected = selector.get_reduced_features_set(k_keep)
-    selected = list(selected)
-    if len(selected) < k_keep:
-        missing = [c for c in X_cols if c not in selected]
-        selected.extend(missing[: k_keep - len(selected)])
-    return selected[:k_keep]
-
-
-def _run_fold_task(
-    X_df: pd.DataFrame,
-    y: np.ndarray,
-    feature_names: list[str],
-    seed: int,
-    fold: int,
-    tr: np.ndarray,
-    te: np.ndarray,
-    k_levels: list[float],
-    strategies: list[str],
-    done: set[tuple],
-    shaprfecv_step: int,
-    shaprfecv_verbose: int,
-    shaprfecv_cv: int,
-) -> tuple[list[dict], list[dict], list[dict]]:
-    print(f"repeat_seed={seed} | fold={fold} | start", flush=True)
-    X_tr_raw = X_df.iloc[tr].to_numpy()
-    X_te_raw = X_df.iloc[te].to_numpy()
-    y_tr = y[tr]
-    y_te = y[te]
-
-    scaler = StandardScaler()
-    X_tr = scaler.fit_transform(X_tr_raw)
-    X_te = scaler.transform(X_te_raw)
-    X_tr_df = pd.DataFrame(X_tr, columns=feature_names)
-    n_feat = len(feature_names)
-
-    rows: list[dict] = []
-    sels: list[dict] = []
-    imps: list[dict] = []
-
-    fi_rank = _fi_rank(X_tr, y_tr, feature_names, seed)
-    imps.append({"strategy": "native_fi", "fold": fold, "repeat_seed": seed, "ranked_features": "|".join(fi_rank)})
-
-    # Optimized full-feature ShapRFECV path (run once per fold)
-    selector_full = None
-    if any(k < 1.0 for k in k_levels):
-        print(f"repeat_seed={seed} | fold={fold} | shaprfecv(full) | fitting once", flush=True)
-        selector_full = _shaprfecv_fit(
-            X_tr_df,
-            y_tr,
-            seed,
-            step=shaprfecv_step,
-            verbose=shaprfecv_verbose,
-            cv=shaprfecv_cv,
+        path.append(
+            {
+                "n_features": len(current),
+                "features": current.copy(),
+                "ranked_features": ranked,
+                "ranked_scores": ranked_scores,
+                "dropped_features": dropped,
+                "rmse": rmse,
+                "mae": mae,
+                "mape": mape,
+                "mse": mse,
+                "fit_time_s": fit_time_s,
+                "shap_time_s": shap_time_s,
+            }
         )
 
-    # Cache hybrid selectors by feature pool
-    hybrid_selector_cache: dict[tuple[str, ...], Any] = {}
+        if len(current) == 1:
+            break
+        current = [f for f in current if f not in set(dropped)]
 
-    for strategy in strategies:
-        print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | start", flush=True)
-        for k in k_levels:
-            print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | k={int(k*100)}%", flush=True)
-            key = (strategy, float(k), fold, seed)
-            if key in done:
-                print(
-                    f"repeat_seed={seed} | fold={fold} | strategy={strategy} | k={int(k*100)}% | skipped(resume)",
-                    flush=True,
-                )
-                continue
-            k_keep = max(1, int(round(n_feat * k)))
-
-            sel_t0 = time.perf_counter()
-            if k == 1.0:
-                selected = feature_names.copy()
-                stage_fi_keep = feature_names.copy()
-                stage_shap_keep = feature_names.copy()
-            elif strategy == "native_fi":
-                selected = fi_rank[:k_keep]
-                stage_fi_keep = selected.copy()
-                stage_shap_keep = selected.copy()
-            elif strategy == "shaprfecv":
-                assert selector_full is not None
-                selected = _shaprfecv_take_k(selector_full, feature_names, k_keep)
-                stage_fi_keep = feature_names.copy()
-                stage_shap_keep = selected.copy()
-            else:
-                n_drop = n_feat - k_keep
-                drop_fi = int(np.ceil(n_drop / 2.0))
-                keep_after_fi = [f for f in fi_rank if f not in set(fi_rank[-drop_fi:])]
-                inter_k = max(k_keep, len(keep_after_fi) - (n_drop - drop_fi))
-                inter_df = X_tr_df[keep_after_fi]
-                key_pool = tuple(keep_after_fi)
-                if key_pool not in hybrid_selector_cache:
-                    print(
-                        f"repeat_seed={seed} | fold={fold} | strategy=hybrid_fi_shaprfecv | shaprfecv fit for pool size={len(keep_after_fi)}",
-                        flush=True,
-                    )
-                    hybrid_selector_cache[key_pool] = _shaprfecv_fit(
-                        inter_df,
-                        y_tr,
-                        seed,
-                        step=shaprfecv_step,
-                        verbose=shaprfecv_verbose,
-                        cv=shaprfecv_cv,
-                    )
-                selected_inter = _shaprfecv_take_k(hybrid_selector_cache[key_pool], keep_after_fi, inter_k)
-                selected = selected_inter[:k_keep]
-                stage_fi_keep = keep_after_fi
-                stage_shap_keep = selected_inter
-            selection_time_s = time.perf_counter() - sel_t0
-
-            sel_idx = [feature_names.index(c) for c in selected]
-            Xtr_sel = X_tr[:, sel_idx]
-            Xte_sel = X_te[:, sel_idx]
-
-            train_t0 = time.perf_counter()
-            model = make_model(seed)
-            model.fit(Xtr_sel, y_tr)
-            train_time_s = time.perf_counter() - train_t0
-            pred_t0 = time.perf_counter()
-            pred = model.predict(Xte_sel)
-            predict_time_s = time.perf_counter() - pred_t0
-
-            rmse = root_mean_squared_error(y_te, pred)
-            mae = mean_absolute_error(y_te, pred)
-            mape = _safe_mape(y_te, pred)
-            mse = mean_squared_error(y_te, pred)
-
-            rows.append(
-                {
-                    "dataset": "Superconductor",
-                    "model": "xgboost",
-                    "strategy": strategy,
-                    "k_pct": float(k),
-                    "fold": fold,
-                    "repeat_seed": seed,
-                    "rmse": float(rmse),
-                    "mae": float(mae),
-                    "mape": float(mape),
-                    "mse": float(mse),
-                    "selection_time_s": float(selection_time_s),
-                    "train_time_s": float(train_time_s),
-                    "predict_time_s": float(predict_time_s),
-                    "total_time_s": float(selection_time_s + train_time_s + predict_time_s),
-                }
-            )
-            sels.append(
-                {
-                    "dataset": "Superconductor",
-                    "model": "xgboost",
-                    "strategy": strategy,
-                    "k_pct": float(k),
-                    "fold": fold,
-                    "repeat_seed": seed,
-                    "n_features_total": n_feat,
-                    "n_features_selected": len(selected),
-                    "n_features_after_fi_stage": len(stage_fi_keep),
-                    "n_features_after_shap_stage": len(stage_shap_keep),
-                    "selected_features_fi_stage": "|".join(stage_fi_keep),
-                    "selected_features_shap_stage": "|".join(stage_shap_keep),
-                    "selected_features": "|".join(selected),
-                }
-            )
-        print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | done", flush=True)
-    print(f"repeat_seed={seed} | fold={fold} | done", flush=True)
-    return rows, sels, imps
+    return path
 
 
-def _run_seed_task(
-    preprocessed_dir: str,
-    seed: int,
-    folds: int,
-    k_levels: list[float],
-    strategies: list[str],
-    done: set[tuple],
-    shaprfecv_step: int,
-    shaprfecv_verbose: int,
-    shaprfecv_cv: int,
-) -> tuple[list[dict], list[dict], list[dict]]:
+def _select_from_path(path: list[dict], k_keep: int) -> tuple[list[str], dict]:
+    eligible = [s for s in path if s["n_features"] >= k_keep]
+    if not eligible:
+        snap = path[-1]
+        return snap["features"], snap
+    snap = min(eligible, key=lambda s: s["n_features"])
+    return snap["features"][:k_keep], snap
+
+
+def _run_seed_task(seed: int, folds: int, k_levels: list[float], done: set[tuple], preprocessed_dir: str, shap_step: int, shap_sample_ratio: float, shap_max_samples: int) -> tuple[list[dict], list[dict], list[dict]]:
     ds_all = load_all_datasets_from_local(preprocessed_dir)
-    ds_candidates = [d for d in ds_all if d["name"] == "Superconductor"]
-    if not ds_candidates:
-        raise RuntimeError("Superconductor dataset not found")
-    ds = ds_candidates[0]
-    X_df = ds["X"].copy()
-    y = ds["y"].to_numpy()
+    ds = [d for d in ds_all if d["name"] == "Superconductor"]
+    if not ds:
+        raise RuntimeError("Superconductor not found")
+    X_df = ds[0]["X"].copy()
+    y = ds[0]["y"].to_numpy()
     feature_names = list(X_df.columns)
 
     rows: list[dict] = []
     sels: list[dict] = []
-    imps: list[dict] = []
+    paths_rows: list[dict] = []
     kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
+
     for fold, (tr, te) in enumerate(kf.split(X_df), 1):
-        r, s, i = _run_fold_task(
-            X_df,
-            y,
-            feature_names,
-            seed,
-            fold,
-            tr,
-            te,
-            k_levels,
-            strategies,
-            done,
-            shaprfecv_step,
-            shaprfecv_verbose,
-            shaprfecv_cv,
-        )
-        rows.extend(r)
-        sels.extend(s)
-        imps.extend(i)
-    return rows, sels, imps
+        print(f"repeat_seed={seed} | fold={fold} | start", flush=True)
+        X_tr_raw = X_df.iloc[tr].to_numpy()
+        X_te_raw = X_df.iloc[te].to_numpy()
+        y_tr = y[tr]
+        y_te = y[te]
+
+        scaler = StandardScaler()
+        X_tr = scaler.fit_transform(X_tr_raw)
+        X_te = scaler.transform(X_te_raw)
+        X_tr_df = pd.DataFrame(X_tr, columns=feature_names)
+        X_te_df = pd.DataFrame(X_te, columns=feature_names)
+
+        n_feat = len(feature_names)
+        fi_model = make_model(seed)
+        fi_model.fit(X_tr, y_tr)
+        fi_order = np.argsort(fi_model.feature_importances_)[::-1]
+        fi_rank = [feature_names[i] for i in fi_order]
+
+        print(f"repeat_seed={seed} | fold={fold} | custom_shap_rfe | build full path", flush=True)
+        full_path = _build_shap_path(X_tr_df, y_tr, X_te_df, y_te, seed, shap_step, shap_sample_ratio, shap_max_samples)
+        path_cache: dict[tuple[str, ...], list[dict]] = {}
+
+        for strategy in ["native_fi", "custom_shap_rfe", "hybrid_fi_custom_shap_rfe"]:
+            print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | start", flush=True)
+            for k in k_levels:
+                print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | k={int(k*100)}%", flush=True)
+                key = (strategy, float(k), fold, seed)
+                if key in done:
+                    print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | k={int(k*100)}% | skipped(resume)", flush=True)
+                    continue
+
+                k_keep = max(1, int(round(n_feat * k)))
+                sel_t0 = time.perf_counter()
+
+                if strategy == "native_fi":
+                    selected = fi_rank[:k_keep]
+                    stage_fi_keep = selected.copy()
+                    stage_shap_keep = selected.copy()
+                    snap = None
+                elif strategy == "custom_shap_rfe":
+                    selected, snap = _select_from_path(full_path, k_keep)
+                    stage_fi_keep = feature_names.copy()
+                    stage_shap_keep = selected.copy()
+                else:
+                    n_drop = n_feat - k_keep
+                    drop_fi = int(np.ceil(n_drop / 2.0))
+                    keep_after_fi = [f for f in fi_rank if f not in set(fi_rank[-drop_fi:])]
+                    pool_key = tuple(keep_after_fi)
+                    if pool_key not in path_cache:
+                        print(f"repeat_seed={seed} | fold={fold} | hybrid path build | pool={len(keep_after_fi)}", flush=True)
+                        path_cache[pool_key] = _build_shap_path(
+                            X_tr_df[keep_after_fi],
+                            y_tr,
+                            X_te_df[keep_after_fi],
+                            y_te,
+                            seed,
+                            shap_step,
+                            shap_sample_ratio,
+                            shap_max_samples,
+                        )
+                    selected, snap = _select_from_path(path_cache[pool_key], k_keep)
+                    stage_fi_keep = keep_after_fi
+                    stage_shap_keep = selected.copy()
+
+                selection_time_s = time.perf_counter() - sel_t0
+                model = make_model(seed)
+                tfit = time.perf_counter()
+                model.fit(X_tr_df[selected], y_tr)
+                fit_time_s = time.perf_counter() - tfit
+                tpred = time.perf_counter()
+                pred = model.predict(X_te_df[selected])
+                pred_time_s = time.perf_counter() - tpred
+
+                rows.append(
+                    {
+                        "dataset": "Superconductor",
+                        "model": "xgboost",
+                        "strategy": strategy,
+                        "k_pct": float(k),
+                        "fold": fold,
+                        "repeat_seed": seed,
+                        "rmse": float(root_mean_squared_error(y_te, pred)),
+                        "mae": float(mean_absolute_error(y_te, pred)),
+                        "mape": _safe_mape(y_te, pred),
+                        "mse": float(mean_squared_error(y_te, pred)),
+                        "selection_time_s": float(selection_time_s),
+                        "train_time_s": float(fit_time_s),
+                        "predict_time_s": float(pred_time_s),
+                        "total_time_s": float(selection_time_s + fit_time_s + pred_time_s),
+                    }
+                )
+                sels.append(
+                    {
+                        "dataset": "Superconductor",
+                        "model": "xgboost",
+                        "strategy": strategy,
+                        "k_pct": float(k),
+                        "fold": fold,
+                        "repeat_seed": seed,
+                        "n_features_total": n_feat,
+                        "n_features_selected": len(selected),
+                        "n_features_after_fi_stage": len(stage_fi_keep),
+                        "n_features_after_shap_stage": len(stage_shap_keep),
+                        "selected_features_fi_stage": "|".join(stage_fi_keep),
+                        "selected_features_shap_stage": "|".join(stage_shap_keep),
+                        "selected_features": "|".join(selected),
+                    }
+                )
+
+            print(f"repeat_seed={seed} | fold={fold} | strategy={strategy} | done", flush=True)
+
+        for snap in full_path:
+            paths_rows.append(
+                {
+                    "dataset": "Superconductor",
+                    "model": "xgboost",
+                    "strategy": "custom_shap_rfe",
+                    "fold": fold,
+                    "repeat_seed": seed,
+                    "n_features": snap["n_features"],
+                    "features": "|".join(snap["features"]),
+                    "ranked_features": "|".join(snap["ranked_features"]),
+                    "ranked_scores": "|".join([f"{v:.12g}" for v in snap["ranked_scores"]]),
+                    "dropped_features": "|".join(snap["dropped_features"]),
+                    "rmse": snap["rmse"],
+                    "mae": snap["mae"],
+                    "mape": snap["mape"],
+                    "mse": snap["mse"],
+                    "fit_time_s": snap["fit_time_s"],
+                    "shap_time_s": snap["shap_time_s"],
+                }
+            )
+
+        print(f"repeat_seed={seed} | fold={fold} | done", flush=True)
+
+    return rows, sels, paths_rows
 
 
-def run_experiments(
-    p: dict[str, Path],
-    quick: bool,
-    resume: bool,
-    preprocessed_dir: str,
-    workers: int,
-    shaprfecv_step: int,
-    shaprfecv_verbose: int,
-    shaprfecv_cv: int,
-) -> None:
-    ds_all = load_all_datasets_from_local(preprocessed_dir)
-    ds_candidates = [d for d in ds_all if d["name"] == "Superconductor"]
-    if not ds_candidates:
-        raise RuntimeError("Experiment 2 requires Superconductor dataset, but it was not found in provided data source")
-    ds = ds_candidates[0]
-    X_df = ds["X"].copy()
-    y = ds["y"].to_numpy()
-    feature_names = list(X_df.columns)
-
-    logging.info("Experiment 2 scope locked: dataset=Superconductor, model=xgboost")
-    logging.info("Loaded Superconductor rows=%d features=%d", X_df.shape[0], X_df.shape[1])
-
+def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocessed_dir: str, workers: int, shap_step: int, shap_sample_ratio: float, shap_max_samples: int) -> None:
     repeats = [42, 123] if quick else [42, 123, 256, 512, 999]
     folds = 2 if quick else 10
     k_levels = [0.5, 1.0] if quick else [0.05, 0.10, 0.15, 0.25, 0.50, 1.0]
-    strategies = ["native_fi", "shaprfecv", "hybrid_fi_shaprfecv"]
 
-    raw_path = p["outputs"] / "exp2_results_raw.csv"
-    sel_path = p["outputs"] / "exp2_selections_raw.csv"
-    imp_path = p["outputs"] / "exp2_importances_raw.csv"
+    raw_path = pmap["outputs"] / "exp2_results_raw.csv"
+    sel_path = pmap["outputs"] / "exp2_selections_raw.csv"
+    path_path = pmap["outputs"] / "exp2_paths_raw.csv"
 
     existing = pd.read_csv(raw_path) if (resume and raw_path.exists()) else pd.DataFrame()
     done = set()
@@ -398,91 +315,41 @@ def run_experiments(
 
     rows: list[dict] = []
     sels: list[dict] = []
-    imps: list[dict] = []
+    paths_rows: list[dict] = []
 
-    logging.info("Strategies: %s", ", ".join(strategies))
-    logging.info("k levels: %s", ", ".join([str(k) for k in k_levels]))
-    logging.info("Repeats: %s | folds=%d | workers=%d", repeats, folds, workers)
-    logging.info(
-        "ShapRFECV config: step=%d | verbose=%d | cv=%d",
-        max(1, int(shaprfecv_step)),
-        max(0, int(shaprfecv_verbose)),
-        max(2, int(shaprfecv_cv)),
-    )
-    logging.info("Running %d seed tasks", len(repeats))
-    total_cells = len(repeats) * folds * len(strategies) * len(k_levels)
-    logging.info("Planned strategy-k cells: %d", total_cells)
-
-    def _checkpoint_write() -> None:
-        merged = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True) if rows else existing
-        merged.to_csv(raw_path, index=False)
-        pd.DataFrame(sels).to_csv(sel_path, index=False)
-        pd.DataFrame(imps).to_csv(imp_path, index=False)
+    logging.info("Experiment 2 scope locked: dataset=Superconductor, model=xgboost")
+    logging.info("k levels: %s", ", ".join([str(x) for x in k_levels]))
+    logging.info("repeats=%s folds=%d workers=%d", repeats, folds, workers)
+    logging.info("custom SHAP-RFE config: step=%d sample_ratio=%.3f max_samples=%d", shap_step, shap_sample_ratio, shap_max_samples)
 
     if workers <= 1:
         for seed in repeats:
-            logging.info("Seed task start: repeat_seed=%d", seed)
-            r, s, i = _run_seed_task(
-                preprocessed_dir,
-                seed,
-                folds,
-                k_levels,
-                strategies,
-                done,
-                shaprfecv_step,
-                shaprfecv_verbose,
-                shaprfecv_cv,
-            )
+            r, s, pth = _run_seed_task(seed, folds, k_levels, done, preprocessed_dir, shap_step, shap_sample_ratio, shap_max_samples)
             rows.extend(r)
             sels.extend(s)
-            imps.extend(i)
-            _checkpoint_write()
-            logging.info("Seed task done: repeat_seed=%d rows=%d", seed, len(r))
+            paths_rows.extend(pth)
+            _checkpoint_write(existing, rows, sels, paths_rows, raw_path, sel_path, path_path)
+            logging.info("seed done=%d accumulated rows=%d", seed, len(rows))
     else:
         with ProcessPoolExecutor(max_workers=workers) as ex:
             futs = [
-                ex.submit(
-                    _run_seed_task,
-                    preprocessed_dir,
-                    seed,
-                    folds,
-                    k_levels,
-                    strategies,
-                    done,
-                    shaprfecv_step,
-                    shaprfecv_verbose,
-                    shaprfecv_cv,
-                )
+                ex.submit(_run_seed_task, seed, folds, k_levels, done, preprocessed_dir, shap_step, shap_sample_ratio, shap_max_samples)
                 for seed in repeats
             ]
-            completed_tasks = 0
+            completed = 0
             for fut in as_completed(futs):
-                r, s, i = fut.result()
+                r, s, pth = fut.result()
                 rows.extend(r)
                 sels.extend(s)
-                imps.extend(i)
-                _checkpoint_write()
-                completed_tasks += 1
-                logging.info(
-                    "Task completed %d/%d: +%d result rows (total=%d)",
-                    completed_tasks,
-                    len(futs),
-                    len(r),
-                    len(rows),
-                )
-
-    raw_df = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True) if rows else existing
-    raw_df.to_csv(raw_path, index=False)
-    pd.DataFrame(sels).to_csv(sel_path, index=False)
-    pd.DataFrame(imps).to_csv(imp_path, index=False)
-    logging.info("Saved exp2 raw rows=%d to %s", len(raw_df), raw_path)
-    logging.info("Saved exp2 selections rows=%d to %s", len(sels), sel_path)
-    logging.info("Saved exp2 importances rows=%d to %s", len(imps), imp_path)
+                paths_rows.extend(pth)
+                _checkpoint_write(existing, rows, sels, paths_rows, raw_path, sel_path, path_path)
+                completed += 1
+                logging.info("seed tasks done %d/%d (+%d rows, total=%d)", completed, len(futs), len(r), len(rows))
 
 
-def run_summary(p: dict[str, Path]) -> None:
-    raw = pd.read_csv(p["outputs"] / "exp2_results_raw.csv")
-    summary = raw.groupby(["dataset", "model", "strategy", "k_pct"], as_index=False).agg(
+def run_summary(pmap: dict[str, Path]) -> None:
+    raw = pd.read_csv(pmap["outputs"] / "exp2_results_raw.csv")
+    s = raw.groupby(["dataset", "model", "strategy", "k_pct"], as_index=False).agg(
         mean_rmse=("rmse", "mean"),
         std_rmse=("rmse", "std"),
         mean_mae=("mae", "mean"),
@@ -490,236 +357,85 @@ def run_summary(p: dict[str, Path]) -> None:
         mean_selection_time_s=("selection_time_s", "mean"),
         mean_total_time_s=("total_time_s", "mean"),
     )
-    summary.to_csv(p["outputs"] / "exp2_results_summary.csv", index=False)
+    s.to_csv(pmap["outputs"] / "exp2_results_summary.csv", index=False)
 
 
-def run_stability(p: dict[str, Path]) -> None:
-    sel = pd.read_csv(p["outputs"] / "exp2_selections_raw.csv")
+def run_stability(pmap: dict[str, Path]) -> None:
+    sel = pd.read_csv(pmap["outputs"] / "exp2_selections_raw.csv")
     rows = []
     for (strategy, k), g in sel.groupby(["strategy", "k_pct"]):
-        sets = [set(x.split("|")) for x in g["selected_features"].tolist()]
+        sets = [set(v.split("|")) for v in g["selected_features"].tolist()]
         votes = {}
         for s in sets:
             for f in s:
                 votes[f] = votes.get(f, 0) + 1
-        majority = {f for f, c in votes.items() if c >= len(sets) / 2}
-        vals = [_jaccard(s, majority) for s in sets]
-        rows.append({"strategy": strategy, "k_pct": k, "mean_jaccard_to_majority": float(np.mean(vals))})
-    pd.DataFrame(rows).to_csv(p["outputs"] / "exp2_stability_analysis.csv", index=False)
+        maj = {f for f, c in votes.items() if c >= len(sets) / 2}
+        rows.append({"strategy": strategy, "k_pct": float(k), "mean_jaccard_to_majority": float(np.mean([_jaccard(s, maj) for s in sets]))})
+    pd.DataFrame(rows).to_csv(pmap["outputs"] / "exp2_stability_analysis.csv", index=False)
 
 
-def run_multicollinearity(p: dict[str, Path], preprocessed_dir: str) -> None:
-    ds_all = load_all_datasets_from_local(preprocessed_dir)
-    ds = [d for d in ds_all if d["name"] == "Superconductor"][0]
-    X_df = ds["X"]
-    sel = pd.read_csv(p["outputs"] / "exp2_selections_raw.csv")
+def run_multicollinearity(pmap: dict[str, Path], preprocessed_dir: str) -> None:
+    ds = [d for d in load_all_datasets_from_local(preprocessed_dir) if d["name"] == "Superconductor"][0]
+    X = ds["X"]
+    sel = pd.read_csv(pmap["outputs"] / "exp2_selections_raw.csv")
     out = []
     for (strategy, k), g in sel.groupby(["strategy", "k_pct"]):
-        mean_abs_corr = []
-        high_corr_ratio = []
+        means = []
+        highs = []
         for feats in g["selected_features"]:
             cols = feats.split("|")
-            c = X_df[cols].corr().abs().to_numpy()
+            c = X[cols].corr().abs().to_numpy()
             if c.shape[0] <= 1:
-                mean_abs_corr.append(0.0)
-                high_corr_ratio.append(0.0)
+                means.append(0.0)
+                highs.append(0.0)
                 continue
             tri = c[np.triu_indices(c.shape[0], k=1)]
-            mean_abs_corr.append(float(np.mean(tri)))
-            high_corr_ratio.append(float(np.mean(tri >= 0.8)))
-        out.append(
-            {
-                "strategy": strategy,
-                "k_pct": float(k),
-                "mean_abs_pairwise_corr": float(np.mean(mean_abs_corr)),
-                "mean_high_corr_pair_ratio_r_ge_0_8": float(np.mean(high_corr_ratio)),
-            }
-        )
-    pd.DataFrame(out).to_csv(p["outputs"] / "exp2_multicollinearity_analysis.csv", index=False)
+            means.append(float(np.mean(tri)))
+            highs.append(float(np.mean(tri >= 0.8)))
+        out.append({"strategy": strategy, "k_pct": float(k), "mean_abs_pairwise_corr": float(np.mean(means)), "mean_high_corr_pair_ratio_r_ge_0_8": float(np.mean(highs))})
+    pd.DataFrame(out).to_csv(pmap["outputs"] / "exp2_multicollinearity_analysis.csv", index=False)
 
 
-def run_figures(p: dict[str, Path], preprocessed_dir: str) -> None:
+def run_figures(pmap: dict[str, Path]) -> None:
     sns.set_theme(style="whitegrid")
-    fig_dir = p["figures"]
+    fig_dir = pmap["figures"]
     fig_dir.mkdir(parents=True, exist_ok=True)
+    raw = pd.read_csv(pmap["outputs"] / "exp2_results_raw.csv")
+    summary = pd.read_csv(pmap["outputs"] / "exp2_results_summary.csv")
 
-    raw = pd.read_csv(p["outputs"] / "exp2_results_raw.csv")
-    summary = pd.read_csv(p["outputs"] / "exp2_results_summary.csv")
-    stability = pd.read_csv(p["outputs"] / "exp2_stability_analysis.csv") if (p["outputs"] / "exp2_stability_analysis.csv").exists() else pd.DataFrame()
-    multicol = pd.read_csv(p["outputs"] / "exp2_multicollinearity_analysis.csv") if (p["outputs"] / "exp2_multicollinearity_analysis.csv").exists() else pd.DataFrame()
-
-    # RMSE by strategy and k
     fig, ax = plt.subplots(figsize=(9, 5))
-    summary_plot = summary.copy()
-    summary_plot["k_label"] = (summary_plot["k_pct"] * 100).astype(int).astype(str)
-    sns.barplot(data=summary_plot, x="k_label", y="mean_rmse", hue="strategy", ax=ax)
-    ax.set_title("Experiment 2: RMSE by Strategy and k")
-    ax.set_xlabel("k% features kept")
-    ax.set_ylabel("Mean RMSE")
+    tmp = summary.copy()
+    tmp["k_label"] = (tmp["k_pct"] * 100).astype(int).astype(str)
+    sns.barplot(data=tmp, x="k_label", y="mean_rmse", hue="strategy", ax=ax)
+    ax.set_title("RMSE by Strategy and k")
     fig.tight_layout()
     fig.savefig(fig_dir / "exp2_rmse_by_strategy_k.png", dpi=300)
     plt.close(fig)
 
-    # Execution time per strategy
     fig, ax = plt.subplots(figsize=(8, 5))
-    tdf = raw.groupby("strategy", as_index=False).agg(
-        mean_selection_time_s=("selection_time_s", "mean"),
-        mean_total_time_s=("total_time_s", "mean"),
-    )
-    tlong = tdf.melt(id_vars=["strategy"], var_name="time_type", value_name="seconds")
-    sns.barplot(data=tlong, x="strategy", y="seconds", hue="time_type", ax=ax)
-    ax.set_title("Experiment 2: Execution Time by Strategy")
-    ax.set_xlabel("Strategy")
-    ax.set_ylabel("Seconds")
+    t = raw.groupby("strategy", as_index=False).agg(selection=("selection_time_s", "mean"), total=("total_time_s", "mean")).melt(id_vars=["strategy"], var_name="time_type", value_name="seconds")
+    sns.barplot(data=t, x="strategy", y="seconds", hue="time_type", ax=ax)
+    ax.set_title("Execution Time by Strategy")
     fig.tight_layout()
     fig.savefig(fig_dir / "exp2_time_by_strategy.png", dpi=300)
     plt.close(fig)
 
-    # Jaccard stability
-    if not stability.empty:
-        fig, ax = plt.subplots(figsize=(9, 5))
-        stability_plot = stability.copy()
-        stability_plot["k_label"] = (stability_plot["k_pct"] * 100).astype(int).astype(str)
-        sns.barplot(data=stability_plot, x="k_label", y="mean_jaccard_to_majority", hue="strategy", ax=ax)
-        ax.set_title("Experiment 2: Jaccard Stability by Strategy and k")
-        ax.set_xlabel("k% features kept")
-        ax.set_ylabel("Mean Jaccard to Majority")
-        fig.tight_layout()
-        fig.savefig(fig_dir / "exp2_jaccard_by_strategy_k.png", dpi=300)
-        plt.close(fig)
 
-    # Multicollinearity behavior
-    if not multicol.empty:
-        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-        m1 = multicol.copy()
-        m1["k_label"] = (m1["k_pct"] * 100).astype(int).astype(str)
-        sns.barplot(data=m1, x="k_label", y="mean_abs_pairwise_corr", hue="strategy", ax=axes[0])
-        axes[0].set_title("Mean Absolute Pairwise Correlation")
-        axes[0].set_xlabel("k%")
-        axes[0].set_ylabel("Mean |corr|")
-
-        sns.barplot(data=m1, x="k_label", y="mean_high_corr_pair_ratio_r_ge_0_8", hue="strategy", ax=axes[1])
-        axes[1].set_title("High-Correlation Pair Ratio (|r|>=0.8)")
-        axes[1].set_xlabel("k%")
-        axes[1].set_ylabel("Ratio")
-        for i in range(2):
-            if i == 1:
-                axes[i].legend(title="strategy", loc="upper right")
-            else:
-                lg = axes[i].get_legend()
-                if lg is not None:
-                    lg.remove()
-        fig.tight_layout()
-        fig.savefig(fig_dir / "exp2_multicollinearity_by_strategy_k.png", dpi=300)
-        plt.close(fig)
-
-    # RMSE vs time trade-off
-    fig, ax = plt.subplots(figsize=(8, 6))
-    trade = summary.groupby("strategy", as_index=False).agg(mean_rmse=("mean_rmse", "mean"), mean_total_time_s=("mean_total_time_s", "mean"))
-    sns.scatterplot(data=trade, x="mean_total_time_s", y="mean_rmse", hue="strategy", s=120, ax=ax)
-    for _, r in trade.iterrows():
-        ax.text(r["mean_total_time_s"], r["mean_rmse"], f" {r['strategy']}", va="center")
-    ax.set_title("Experiment 2: Accuracy vs Time Trade-off")
-    ax.set_xlabel("Mean Total Time (s)")
-    ax.set_ylabel("Mean RMSE")
-    fig.tight_layout()
-    fig.savefig(fig_dir / "exp2_rmse_vs_time_tradeoff.png", dpi=300)
-    plt.close(fig)
-
-    # SHAP plots: one per shap-based strategy x k combination
-    sel = pd.read_csv(p["outputs"] / "exp2_selections_raw.csv")
-    ds_all = load_all_datasets_from_local(preprocessed_dir)
-    ds = [d for d in ds_all if d["name"] == "Superconductor"][0]
-    X_df = ds["X"].copy()
-    y = ds["y"].to_numpy()
-    feature_names = list(X_df.columns)
-    shap_dir = fig_dir / "exp2_shap"
-    shap_dir.mkdir(parents=True, exist_ok=True)
-
-    rep_seed = int(sel["repeat_seed"].min())
-    rep_fold = int(sel["fold"].min())
-    kf = KFold(n_splits=max(int(sel["fold"].max()), 2), shuffle=True, random_state=rep_seed)
-    splits = list(kf.split(X_df))
-    tr, te = splits[rep_fold - 1]
-    X_tr_raw = X_df.iloc[tr].to_numpy()
-    y_tr = y[tr]
-    scaler = StandardScaler()
-    X_tr = scaler.fit_transform(X_tr_raw)
-    X_tr_df = pd.DataFrame(X_tr, columns=feature_names)
-
-    shap_strategies = ["shaprfecv", "hybrid_fi_shaprfecv"]
-    for strat in shap_strategies:
-        for k in sorted(sel["k_pct"].unique()):
-            row = sel[
-                (sel["strategy"] == strat)
-                & (sel["k_pct"] == k)
-                & (sel["repeat_seed"] == rep_seed)
-                & (sel["fold"] == rep_fold)
-            ]
-            if row.empty:
-                continue
-            selected = row.iloc[0]["selected_features"]
-            cols = selected.split("|") if isinstance(selected, str) and selected else feature_names
-            Xs = X_tr_df[cols]
-            model = make_model(rep_seed)
-            model.fit(Xs, y_tr)
-            explainer = shap.TreeExplainer(model, data=Xs, feature_perturbation="interventional")
-            shap_values = explainer.shap_values(Xs, check_additivity=False)
-
-            fig = plt.figure(figsize=(8, 5))
-            shap.summary_plot(shap_values, Xs, plot_type="bar", show=False)
-            plt.title(f"SHAP Bar | {strat} | k={int(k*100)}%")
-            plt.tight_layout()
-            plt.savefig(shap_dir / f"shap_bar_{strat}_k{int(k*100)}.png", dpi=300)
-            plt.close(fig)
-
-
-def run_analysis_markdown(p: dict[str, Path]) -> None:
-    raw = pd.read_csv(p["outputs"] / "exp2_results_raw.csv")
-    summary = pd.read_csv(p["outputs"] / "exp2_results_summary.csv")
-    stability = pd.read_csv(p["outputs"] / "exp2_stability_analysis.csv") if (p["outputs"] / "exp2_stability_analysis.csv").exists() else pd.DataFrame()
-    multicol = pd.read_csv(p["outputs"] / "exp2_multicollinearity_analysis.csv") if (p["outputs"] / "exp2_multicollinearity_analysis.csv").exists() else pd.DataFrame()
-
-    best = summary.loc[summary.groupby("k_pct")["mean_rmse"].idxmin(), ["k_pct", "strategy", "mean_rmse", "mean_mae", "mean_mape", "mean_selection_time_s"]]
-    strat_agg = summary.groupby("strategy", as_index=False).agg(
-        mean_rmse=("mean_rmse", "mean"),
-        mean_mae=("mean_mae", "mean"),
-        mean_mape=("mean_mape", "mean"),
-        mean_time_s=("mean_total_time_s", "mean"),
-    )
-
-    lines = []
-    lines.append("# Experiment 2 Results Draft")
-    lines.append("")
-    lines.append("## Setup")
-    lines.append("- Dataset: Superconductor")
-    lines.append("- Model: XGBoost")
-    lines.append("- Strategies: native_fi, shaprfecv, hybrid_fi_shaprfecv")
-    lines.append(f"- Raw observations: {len(raw)}")
-    lines.append("")
-    lines.append("## Best Strategy by k (RMSE)")
-    lines.append(best.to_markdown(index=False))
-    lines.append("")
-    lines.append("## Strategy Aggregates")
-    lines.append(strat_agg.to_markdown(index=False))
-    lines.append("")
-    if not stability.empty:
-        lines.append("## Stability (Jaccard)")
-        lines.append(stability.sort_values(["k_pct", "mean_jaccard_to_majority"], ascending=[True, False]).to_markdown(index=False))
-        lines.append("")
-    if not multicol.empty:
-        lines.append("## Multicollinearity Behavior")
-        lines.append(multicol.sort_values(["k_pct", "mean_high_corr_pair_ratio_r_ge_0_8"]).to_markdown(index=False))
-        lines.append("")
-    lines.append("## Generated Figures")
-    lines.append("- exp2_rmse_by_strategy_k.png")
-    lines.append("- exp2_time_by_strategy.png")
-    lines.append("- exp2_jaccard_by_strategy_k.png")
-    lines.append("- exp2_multicollinearity_by_strategy_k.png")
-    lines.append("- exp2_rmse_vs_time_tradeoff.png")
-    lines.append("- exp2_shap/*.png")
-
-    (p["outputs"] / "exp2_results_draft.md").write_text("\n".join(lines), encoding="utf-8")
+def run_analysis_markdown(pmap: dict[str, Path]) -> None:
+    raw = pd.read_csv(pmap["outputs"] / "exp2_results_raw.csv")
+    summary = pd.read_csv(pmap["outputs"] / "exp2_results_summary.csv")
+    best = summary.loc[summary.groupby("k_pct")["mean_rmse"].idxmin(), ["k_pct", "strategy", "mean_rmse", "mean_mae", "mean_mape"]]
+    lines = [
+        "# Experiment 2 Results Draft",
+        "",
+        "- Dataset: Superconductor",
+        "- Model: XGBoost",
+        f"- Raw observations: {len(raw)}",
+        "",
+        "## Best by k (RMSE)",
+        best.to_markdown(index=False),
+    ]
+    (pmap["outputs"] / "exp2_results_draft.md").write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> None:
@@ -728,35 +444,35 @@ def main() -> None:
     random.seed(SEED)
     np.random.seed(SEED)
 
-    p = paths(Path.cwd(), run_id=args.run_id)
-    p["outputs"].mkdir(parents=True, exist_ok=True)
-    p["figures"].mkdir(parents=True, exist_ok=True)
-    p["logs"].mkdir(parents=True, exist_ok=True)
-    logging.info("Experiment 2 run root: %s", p["root"])
+    pmap = paths(Path.cwd(), run_id=args.run_id)
+    pmap["outputs"].mkdir(parents=True, exist_ok=True)
+    pmap["figures"].mkdir(parents=True, exist_ok=True)
+    pmap["logs"].mkdir(parents=True, exist_ok=True)
+
+    logging.info("Experiment 2 run root: %s", pmap["root"])
     logging.info("Experiment 2 is fixed to dataset=Superconductor and model=xgboost")
 
     if args.step in ["all", "experiments"]:
         run_experiments(
-            p,
+            pmap,
             quick=args.quick,
             resume=args.resume,
             preprocessed_dir=args.use_preprocessed_dir,
             workers=max(1, args.workers),
-            shaprfecv_step=max(1, args.shaprfecv_step),
-            shaprfecv_verbose=max(0, args.shaprfecv_verbose),
-            shaprfecv_cv=max(2, args.shaprfecv_cv),
+            shap_step=max(1, args.shap_step),
+            shap_sample_ratio=float(args.shap_sample_ratio),
+            shap_max_samples=max(50, int(args.shap_max_samples)),
         )
-        logging.info("Saved Experiment 2 raw outputs under %s", p["outputs"])
     if args.step in ["all", "summary"]:
-        run_summary(p)
+        run_summary(pmap)
     if args.step in ["all", "stability"]:
-        run_stability(p)
+        run_stability(pmap)
     if args.step in ["all", "multicollinearity"]:
-        run_multicollinearity(p, preprocessed_dir=args.use_preprocessed_dir)
+        run_multicollinearity(pmap, args.use_preprocessed_dir)
     if args.step in ["all", "figures"]:
-        run_figures(p, preprocessed_dir=args.use_preprocessed_dir)
+        run_figures(pmap)
     if args.step in ["all", "analysis"]:
-        run_analysis_markdown(p)
+        run_analysis_markdown(pmap)
 
 
 if __name__ == "__main__":
