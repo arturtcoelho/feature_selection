@@ -13,6 +13,7 @@ This repository contains a reproducible experiment pipeline for comparing featur
 
 - `experiment1.py`: original full multi-dataset pipeline (legacy/main thesis setup).
 - `experiment2.py`: focused pipeline (Superconductor + XGBoost + 3 new strategies).
+- `experiment3.py`: focused pipeline for Allstate ARFF (`dataset.arff`) with categorical support.
 - `src/`: experiment modules (data loading, feature selection, runner, stats, figures, stability).
 - `pre_study/`: independent data pre-study pipeline and report generation.
 - `outputs/`: default output location when no run id is used.
@@ -127,6 +128,35 @@ Experiment 2 outputs are written to `runs/<run-id>/outputs/` as:
 - `exp2_multicollinearity_analysis.csv`
 - `exp2_selections_raw.csv`
 - `exp2_paths_raw.csv` (full custom SHAP-RFE elimination snapshots)
+
+## Experiment 3 CLI
+
+Experiment 3 mirrors Experiment 2 logic, but uses the local ARFF dataset:
+
+- Input file: `./dataset.arff`
+- Model: XGBoost regressor with categorical support (`enable_categorical=True`)
+- Non-numeric feature columns are dynamically cast to pandas `category`
+
+Run all stages:
+
+```bash
+python3 experiment3.py --step all --run-id exp3_run01 --arff-path dataset.arff
+```
+
+Optional target column override (default is last column):
+
+```bash
+python3 experiment3.py --step experiments --run-id exp3_run01 --arff-path dataset.arff --target-col loss
+```
+
+Experiment 3 outputs are written to `runs/<run-id>/outputs/` as:
+
+- `exp3_results_raw.csv`
+- `exp3_results_summary.csv`
+- `exp3_stability_analysis.csv`
+- `exp3_multicollinearity_analysis.csv`
+- `exp3_selections_raw.csv`
+- `exp3_paths_raw.csv`
 
 ## Output files
 

@@ -98,6 +98,12 @@ def _load_superconductor_local(processed_dir: str) -> tuple[pd.DataFrame, np.nda
     return X_clean, y_clean, list(X_clean.columns)
 
 
+def _is_valid_k_for_strategy(strategy: str, k: float) -> bool:
+    if strategy == "native_fi":
+        return True
+    return k < 1.0
+
+
 def _build_shap_path(
     X_train_df: pd.DataFrame,
     y_train: np.ndarray,
@@ -243,6 +249,8 @@ def _run_strategy_job(
 
     strat_label = "fi" if strategy == "native_fi" else ("shaprfe" if strategy == "custom_shap_rfe" else "hybrid")
     full_path: list[dict] = []
+    valid_k_levels = [k for k in k_levels if _is_valid_k_for_strategy(strategy, float(k))]
+
     if strategy == "native_fi":
         print(f"repeat: {seed} | fold: {fold}/{folds} | strat: {strat_label} | progress: n/a", flush=True)
     elif strategy == "custom_shap_rfe":
@@ -260,17 +268,17 @@ def _run_strategy_job(
             progress_callback=lambda i, t: print(f"repeat: {seed} | fold: {fold}/{folds} | strat: shaprfe | progress: {i}/{t}", flush=True),
         )
     else:
-        print(f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: 0/{len(k_levels)}", flush=True)
+        print(f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: 0/{len(valid_k_levels)}", flush=True)
 
     path_cache: dict[tuple[str, ...], list[dict]] = {}
     hybrid_k_done = 0
     strategy_has_work = False
-    for k in k_levels:
+    for k in valid_k_levels:
         key = (strategy, float(k), fold, seed)
         if key in done:
             if strategy == "hybrid_fi_custom_shap_rfe":
                 hybrid_k_done += 1
-                print(f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: {hybrid_k_done}/{len(k_levels)}", flush=True)
+                print(f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: {hybrid_k_done}/{len(valid_k_levels)}", flush=True)
             continue
         strategy_has_work = True
 
@@ -287,7 +295,10 @@ def _run_strategy_job(
         else:
             n_drop = n_feat - k_keep
             drop_fi = int(np.ceil(n_drop / 2.0))
-            keep_after_fi = [f for f in fi_rank if f not in set(fi_rank[-drop_fi:])]
+            if drop_fi <= 0:
+                keep_after_fi = fi_rank.copy()
+            else:
+                keep_after_fi = [f for f in fi_rank if f not in set(fi_rank[-drop_fi:])]
             if not keep_after_fi:
                 keep_after_fi = [fi_rank[0]]
             pool_key = tuple(keep_after_fi)
@@ -310,7 +321,7 @@ def _run_strategy_job(
             stage_fi_keep = keep_after_fi
             stage_shap_keep = selected.copy()
             hybrid_k_done += 1
-            print(f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: {hybrid_k_done}/{len(k_levels)}", flush=True)
+            print(f"repeat: {seed} | fold: {fold}/{folds} | strat: hybrid | progress: {hybrid_k_done}/{len(valid_k_levels)}", flush=True)
 
         selection_time_s = time.perf_counter() - sel_t0
         model = make_model(seed, xgb_jobs, use_gpu)
@@ -321,10 +332,12 @@ def _run_strategy_job(
         pred = model.predict(X_te_df[selected])
         pred_time_s = time.perf_counter() - tpred
 
+        strategy_out = "baseline" if (strategy == "native_fi" and float(k) == 1.0) else strategy
+
         rows.append({
             "dataset": "Superconductor",
             "model": "xgboost",
-            "strategy": strategy,
+            "strategy": strategy_out,
             "k_pct": float(k),
             "fold": fold,
             "repeat_seed": seed,
@@ -340,7 +353,7 @@ def _run_strategy_job(
         sels.append({
             "dataset": "Superconductor",
             "model": "xgboost",
-            "strategy": strategy,
+            "strategy": strategy_out,
             "k_pct": float(k),
             "fold": fold,
             "repeat_seed": seed,
@@ -395,14 +408,18 @@ def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocess
     done = set()
     if not existing.empty:
         for _, r in existing.iterrows():
-            done.add((r["strategy"], float(r["k_pct"]), int(r["fold"]), int(r["repeat_seed"])))
+            s = str(r["strategy"])
+            if s == "baseline":
+                s = "native_fi"
+            done.add((s, float(r["k_pct"]), int(r["fold"]), int(r["repeat_seed"])))
 
     total_experiments = len(repeats) * folds * 3
     remaining_experiments = 0
     for seed in repeats:
         for fold in range(1, folds + 1):
             for strategy in ["native_fi", "custom_shap_rfe", "hybrid_fi_custom_shap_rfe"]:
-                if any((strategy, float(k), fold, seed) not in done for k in k_levels):
+                valid_k_levels = [k for k in k_levels if _is_valid_k_for_strategy(strategy, float(k))]
+                if any((strategy, float(k), fold, seed) not in done for k in valid_k_levels):
                     remaining_experiments += 1
 
     logging.info("Experiment 2 scope locked: dataset=Superconductor, model=xgboost")
@@ -486,6 +503,11 @@ def run_experiments(pmap: dict[str, Path], quick: bool, resume: bool, preprocess
 
 def run_summary(pmap: dict[str, Path]) -> None:
     raw = pd.read_csv(pmap["outputs"] / "exp2_results_raw.csv")
+    # Canonicalize baseline semantics: only baseline at k=1.0
+    raw = raw.copy()
+    raw.loc[(raw["k_pct"].astype(float) == 1.0) & (raw["strategy"] == "native_fi"), "strategy"] = "baseline"
+    raw = raw[~((raw["k_pct"].astype(float) == 1.0) & (~raw["strategy"].isin(["baseline"])))].copy()
+    raw = raw[~((raw["k_pct"].astype(float) < 1.0) & (raw["strategy"] == "baseline"))].copy()
     s = raw.groupby(["dataset", "model", "strategy", "k_pct"], as_index=False).agg(
         mean_rmse=("rmse", "mean"),
         std_rmse=("rmse", "std"),
@@ -536,24 +558,104 @@ def run_figures(pmap: dict[str, Path]) -> None:
     sns.set_theme(style="whitegrid")
     fig_dir = pmap["figures"]
     fig_dir.mkdir(parents=True, exist_ok=True)
+
+    # Always refresh derived tables before plotting
+    run_summary(pmap)
+    run_stability(pmap)
+    run_multicollinearity(pmap, "pre_study/data/processed")
+
     raw = pd.read_csv(pmap["outputs"] / "exp2_results_raw.csv")
     summary = pd.read_csv(pmap["outputs"] / "exp2_results_summary.csv")
+
+    raw = raw.copy()
+    raw.loc[(raw["k_pct"].astype(float) == 1.0) & (raw["strategy"] == "native_fi"), "strategy"] = "baseline"
+    raw = raw[~((raw["k_pct"].astype(float) == 1.0) & (~raw["strategy"].isin(["baseline"])))].copy()
+    raw = raw[~((raw["k_pct"].astype(float) < 1.0) & (raw["strategy"] == "baseline"))].copy()
+
+    stab_path = pmap["outputs"] / "exp2_stability_analysis.csv"
+    mc_path = pmap["outputs"] / "exp2_multicollinearity_analysis.csv"
+
+    k_order_num = sorted(summary["k_pct"].unique(), reverse=True)
+    k_order = [str(int(k * 100)) for k in k_order_num]
+    hue_order = ["native_fi", "custom_shap_rfe", "hybrid_fi_custom_shap_rfe", "baseline"]
 
     fig, ax = plt.subplots(figsize=(9, 5))
     tmp = summary.copy()
     tmp["k_label"] = (tmp["k_pct"] * 100).astype(int).astype(str)
-    sns.barplot(data=tmp, x="k_label", y="mean_rmse", hue="strategy", ax=ax)
+    sns.barplot(data=tmp, x="k_label", y="mean_rmse", hue="strategy", hue_order=hue_order, order=k_order, ax=ax)
     ax.set_title("RMSE by Strategy and k")
+    ax.set_xlabel("k% features kept (descending)")
+    ax.set_ylabel("Mean RMSE")
     fig.tight_layout()
     fig.savefig(fig_dir / "exp2_rmse_by_strategy_k.png", dpi=300)
     plt.close(fig)
 
+    # RMSE distribution (boxplot) by strategy at each k
+    fig, ax = plt.subplots(figsize=(10, 5))
+    rb = raw.copy()
+    rb["k_label"] = (rb["k_pct"] * 100).astype(int).astype(str)
+    sns.boxplot(data=rb, x="k_label", y="rmse", hue="strategy", hue_order=hue_order, order=k_order, ax=ax)
+    ax.set_title("RMSE Distribution by Strategy and k")
+    ax.set_xlabel("k% features kept (descending)")
+    ax.set_ylabel("RMSE")
+    fig.tight_layout()
+    fig.savefig(fig_dir / "exp2_rmse_boxplot_by_strategy_k.png", dpi=300)
+    plt.close(fig)
+
     fig, ax = plt.subplots(figsize=(8, 5))
-    t = raw.groupby("strategy", as_index=False).agg(selection=("selection_time_s", "mean"), total=("total_time_s", "mean")).melt(id_vars=["strategy"], var_name="time_type", value_name="seconds")
+    t = raw[raw["k_pct"].astype(float) < 1.0].groupby("strategy", as_index=False).agg(selection=("selection_time_s", "mean"), total=("total_time_s", "mean")).melt(id_vars=["strategy"], var_name="time_type", value_name="seconds")
     sns.barplot(data=t, x="strategy", y="seconds", hue="time_type", ax=ax)
     ax.set_title("Execution Time by Strategy")
     fig.tight_layout()
     fig.savefig(fig_dir / "exp2_time_by_strategy.png", dpi=300)
+    plt.close(fig)
+
+    if stab_path.exists():
+        stab = pd.read_csv(stab_path)
+        if not stab.empty:
+            fig, ax = plt.subplots(figsize=(9, 5))
+            sp = stab.copy()
+            sp["k_label"] = (sp["k_pct"] * 100).astype(int).astype(str)
+            sns.barplot(data=sp, x="k_label", y="mean_jaccard_to_majority", hue="strategy", hue_order=hue_order, order=k_order, ax=ax)
+            ax.set_title("Stability (Jaccard to Majority) by Strategy and k")
+            ax.set_xlabel("k% features kept (descending)")
+            ax.set_ylabel("Mean Jaccard")
+            fig.tight_layout()
+            fig.savefig(fig_dir / "exp2_stability_by_strategy_k.png", dpi=300)
+            plt.close(fig)
+
+    if mc_path.exists():
+        mc = pd.read_csv(mc_path)
+        if not mc.empty:
+            fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+            mp = mc.copy()
+            mp["k_label"] = (mp["k_pct"] * 100).astype(int).astype(str)
+            sns.barplot(data=mp, x="k_label", y="mean_abs_pairwise_corr", hue="strategy", hue_order=hue_order, order=k_order, ax=axes[0])
+            axes[0].set_title("Mean Absolute Pairwise Correlation")
+            axes[0].set_xlabel("k% (descending)")
+            axes[0].set_ylabel("Mean |corr|")
+            sns.barplot(data=mp, x="k_label", y="mean_high_corr_pair_ratio_r_ge_0_8", hue="strategy", hue_order=hue_order, order=k_order, ax=axes[1])
+            axes[1].set_title("High-Correlation Pair Ratio (|r|>=0.8)")
+            axes[1].set_xlabel("k% (descending)")
+            axes[1].set_ylabel("Ratio")
+            lg = axes[0].get_legend()
+            if lg is not None:
+                lg.remove()
+            fig.tight_layout()
+            fig.savefig(fig_dir / "exp2_multicollinearity_by_strategy_k.png", dpi=300)
+            plt.close(fig)
+
+    # Accuracy vs compute trade-off
+    fig, ax = plt.subplots(figsize=(8, 6))
+    trade = summary.groupby("strategy", as_index=False).agg(mean_rmse=("mean_rmse", "mean"), mean_total_time_s=("mean_total_time_s", "mean"))
+    sns.scatterplot(data=trade, x="mean_total_time_s", y="mean_rmse", hue="strategy", s=120, ax=ax)
+    for _, r in trade.iterrows():
+        ax.text(float(r["mean_total_time_s"]), float(r["mean_rmse"]), f" {r['strategy']}", va="center")
+    ax.set_title("RMSE vs Total Time (Strategy Means)")
+    ax.set_xlabel("Mean Total Time (s)")
+    ax.set_ylabel("Mean RMSE")
+    fig.tight_layout()
+    fig.savefig(fig_dir / "exp2_rmse_vs_time_tradeoff.png", dpi=300)
     plt.close(fig)
 
 
