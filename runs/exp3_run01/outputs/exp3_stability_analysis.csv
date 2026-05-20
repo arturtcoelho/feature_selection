@@ -1,0 +1,17 @@
+strategy,k_pct,mean_jaccard_to_majority
+baseline,1.0,1.0
+custom_shap_rfe,0.05,1.0
+custom_shap_rfe,0.1,0.9942857142857143
+custom_shap_rfe,0.15,0.9961904761904762
+custom_shap_rfe,0.25,0.9331652661064425
+custom_shap_rfe,0.5,0.9257680964377109
+hybrid_fi_custom_shap_rfe,0.05,0.8478571428571426
+hybrid_fi_custom_shap_rfe,0.1,0.9546666666666667
+hybrid_fi_custom_shap_rfe,0.15,0.9885714285714287
+hybrid_fi_custom_shap_rfe,0.25,0.9531428571428571
+hybrid_fi_custom_shap_rfe,0.5,0.904567393520185
+native_fi,0.05,0.9
+native_fi,0.1,0.8900000000000001
+native_fi,0.15,0.899371353284397
+native_fi,0.25,0.9127787114845937
+native_fi,0.5,0.8334970283460212
