@@ -4,6 +4,7 @@ import argparse
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import replace
 import fcntl
+import gc
 import logging
 from pathlib import Path
 import random
@@ -46,6 +47,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--shap-max-samples", type=int, default=1200)
     p.add_argument("--shap-sample-ratio", type=float, default=0.05)
     p.add_argument("--shap-sample-ratio-xgb", type=float, default=0.10)
+    p.add_argument("--max-tasks-per-child", type=int, default=2)
     return p.parse_args()
 
 
@@ -91,7 +93,8 @@ def _load_allstate(arff_path: str, target_col: str | None) -> tuple[pd.DataFrame
     clean = X.copy()
     clean["target"] = y
     clean = clean.dropna()
-    y_clean = clean.pop("target")
+    y_clean = clean.pop("target").astype(np.float32)
+    clean = clean.astype(np.float32, copy=False)
     return clean, y_clean, list(clean.columns)
 
 
@@ -164,17 +167,12 @@ def _run_job(
     X_df, y_s, feature_names = _get_cached_dataset(arff_path, target_col)
     kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
     tr, te = list(kf.split(X_df))[fold - 1]
-    X_tr_raw = X_df.iloc[tr].to_numpy()
-    X_te_raw = X_df.iloc[te].to_numpy()
-    y_tr = y_s.iloc[tr].to_numpy()
-    y_te = y_s.iloc[te].to_numpy()
+    X_tr_raw = X_df.iloc[tr].to_numpy(dtype=np.float32, copy=False)
+    X_te_raw = X_df.iloc[te].to_numpy(dtype=np.float32, copy=False)
+    y_tr = y_s.iloc[tr].to_numpy(dtype=np.float32, copy=False)
+    y_te = y_s.iloc[te].to_numpy(dtype=np.float32, copy=False)
     X_tr, X_te = scale_train_test(X_tr_raw, X_te_raw)
     n_features = X_tr.shape[1]
-
-    rows = []
-    sels = []
-    imps = []
-    errs = []
 
     print(f"job seed={seed} fold={fold}/{folds} model={model_name} strategy={strategy}", flush=True)
 
@@ -204,35 +202,32 @@ def _run_job(
         selection_time_s = time.perf_counter() - t_sel
         ordered_features = np.array(feature_names)[ranking].tolist()
         ordered_scores = [float(ranking_scores[int(i)]) for i in ranking.tolist()]
-        imps.append(
-            {
-                "dataset": "Allstate",
-                "model": model_name,
-                "strategy": strategy,
-                "fold": fold,
-                "repeat_seed": seed,
-                "corr_prune_threshold": corr_prune_threshold,
-                "ranked_features": "|".join(ordered_features),
-                "ranked_scores": "|".join([f"{v:.12g}" for v in ordered_scores]),
-            }
-        )
-        _append_csv_locked(pd.DataFrame(imps[-1:]), Path(imp_path), Path(lock_imp))
+        imp_row = {
+            "dataset": "Allstate",
+            "model": model_name,
+            "strategy": strategy,
+            "fold": fold,
+            "repeat_seed": seed,
+            "corr_prune_threshold": corr_prune_threshold,
+            "ranked_features": "|".join(ordered_features),
+            "ranked_scores": "|".join([f"{v:.12g}" for v in ordered_scores]),
+        }
+        _append_csv_locked(pd.DataFrame([imp_row]), Path(imp_path), Path(lock_imp))
     except Exception as exc:  # noqa: BLE001
-        errs.append(
-            {
-                "dataset": "Allstate",
-                "model": model_name,
-                "strategy": strategy,
-                "k_pct": np.nan,
-                "fold": fold,
-                "repeat_seed": seed,
-                "stage": "ranking",
-                "error_type": type(exc).__name__,
-                "error": str(exc),
-                "traceback": traceback.format_exc(),
-            }
-        )
-        _append_csv_locked(pd.DataFrame(errs[-1:]), Path(err_path), Path(lock_err))
+        err_row = {
+            "dataset": "Allstate",
+            "model": model_name,
+            "strategy": strategy,
+            "k_pct": np.nan,
+            "fold": fold,
+            "repeat_seed": seed,
+            "stage": "ranking",
+            "error_type": type(exc).__name__,
+            "error": str(exc),
+            "traceback": traceback.format_exc(),
+        }
+        _append_csv_locked(pd.DataFrame([err_row]), Path(err_path), Path(lock_err))
+        gc.collect()
         return 1, 0
 
     wrote = 0
@@ -283,27 +278,27 @@ def _run_job(
                 "n_features_selected": int(len(idx)),
                 "selected_features": "|".join(np.array(feature_names)[idx].tolist()),
             }
-            rows.append(row)
-            sels.append(sel)
             _append_csv_locked(pd.DataFrame([row])[RAW_COLUMNS], Path(raw_path), Path(lock_raw))
             _append_csv_locked(pd.DataFrame([sel]), Path(sel_path), Path(lock_sel))
             wrote += 1
         except Exception as exc:  # noqa: BLE001
-            errs.append(
-                {
-                    "dataset": "Allstate",
-                    "model": model_name,
-                    "strategy": strategy,
-                    "k_pct": float(k_pct),
-                    "fold": fold,
-                    "repeat_seed": seed,
-                    "stage": "fit_predict",
-                    "error_type": type(exc).__name__,
-                    "error": str(exc),
-                    "traceback": traceback.format_exc(),
-                }
-            )
-            _append_csv_locked(pd.DataFrame(errs[-1:]), Path(err_path), Path(lock_err))
+            err_row = {
+                "dataset": "Allstate",
+                "model": model_name,
+                "strategy": strategy,
+                "k_pct": float(k_pct),
+                "fold": fold,
+                "repeat_seed": seed,
+                "stage": "fit_predict",
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "traceback": traceback.format_exc(),
+            }
+            _append_csv_locked(pd.DataFrame([err_row]), Path(err_path), Path(lock_err))
+        finally:
+            gc.collect()
+    del X_tr_raw, X_te_raw, X_tr, X_te, y_tr, y_te, ranking, ranking_pruned, ranking_scores
+    gc.collect()
     return 1, wrote
 
 
@@ -350,7 +345,12 @@ def run_experiments_allstate(pmap: dict[str, Path], cfg, args: argparse.Namespac
             pbar.update(done_job)
             logging.info("job done seed=%d fold=%d model=%s strategy=%s rows=%d", seed, fold, model, strategy, wrote)
     else:
-        with ProcessPoolExecutor(max_workers=cfg.workers, initializer=_init_worker, initargs=(args.arff_path, args.target_col)) as ex:
+        with ProcessPoolExecutor(
+            max_workers=cfg.workers,
+            initializer=_init_worker,
+            initargs=(args.arff_path, args.target_col),
+            max_tasks_per_child=max(1, int(args.max_tasks_per_child)),
+        ) as ex:
             futs = [
                 ex.submit(
                     _run_job,
@@ -390,7 +390,8 @@ def main() -> None:
         return
 
     if args.step in ["all", "experiments"]:
-        _init_worker(args.arff_path, args.target_col)
+        if cfg.workers <= 1:
+            _init_worker(args.arff_path, args.target_col)
         run_experiments_allstate(pmap, cfg, args)
 
     if args.step in ["all", "summary"]:
