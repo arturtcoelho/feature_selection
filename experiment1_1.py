@@ -70,9 +70,18 @@ def _append_csv_locked(df: pd.DataFrame, target: Path, lock_path: Path) -> None:
 
 
 def _load_allstate(arff_path: str, target_col: str | None) -> tuple[pd.DataFrame, pd.Series, list[str]]:
-    path = Path(arff_path)
+    path = Path(arff_path).expanduser()
+    if not path.is_absolute():
+        path = (Path.cwd() / path).resolve()
     if not path.exists():
-        raise RuntimeError(f"Missing ARFF dataset file: {path}")
+        alt = (Path(__file__).resolve().parent / "dataset.arff").resolve()
+        if alt.exists():
+            path = alt
+        else:
+            raise RuntimeError(
+                f"Missing ARFF dataset file: {path}. "
+                f"cwd={Path.cwd()} script_dir={Path(__file__).resolve().parent}"
+            )
     data, _meta = arff.loadarff(path)
     df = pd.DataFrame(data)
     for col in df.columns:
@@ -375,6 +384,14 @@ def main() -> None:
 
     pmap = paths(Path.cwd(), run_id=args.run_id)
     ensure_dirs(pmap)
+    arff_resolved = Path(args.arff_path).expanduser()
+    if not arff_resolved.is_absolute():
+        arff_resolved = (Path.cwd() / arff_resolved).resolve()
+    if not arff_resolved.exists():
+        alt = (Path(__file__).resolve().parent / "dataset.arff").resolve()
+        if alt.exists():
+            arff_resolved = alt
+    args.arff_path = str(arff_resolved)
     cfg = build_run_config(quick=args.quick)
     cfg = replace(cfg, workers=max(1, int(args.workers)))
     if args.no_gpu:
@@ -385,6 +402,7 @@ def main() -> None:
     est = 1 * len(MODELS) * len(STRATEGIES) * len(cfg.k_levels) * cfg.folds * len(cfg.repeat_seeds)
     logging.info("Run root=%s", pmap["root"])
     logging.info("Planned observations=%d", est)
+    logging.info("ARFF path=%s", args.arff_path)
     if args.dry_run:
         print(f"Dry run plan: estimated observations={est}")
         return
