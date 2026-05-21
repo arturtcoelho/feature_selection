@@ -25,19 +25,27 @@ from src.preprocessing import scale_train_test
 from src.results_io import RAW_COLUMNS, load_raw_results, save_raw_results, save_summary, summarize_results
 
 
+_DATASET_CACHE: tuple[pd.DataFrame, pd.Series, list[str]] | None = None
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Experiment 1.1: Exp1 protocol on Allstate only")
     p.add_argument("--quick", action="store_true")
     p.add_argument("--step", choices=["all", "experiments", "summary", "stats", "stability", "figures"], default="all")
     p.add_argument("--resume", action="store_true")
     p.add_argument("--dry-run", action="store_true")
-    p.add_argument("--workers", type=int, default=6)
+    p.add_argument("--workers", type=int, default=2)
     p.add_argument("--no-gpu", action="store_true")
     p.add_argument("--metric", choices=["mape", "rmse", "mse"], default="rmse")
     p.add_argument("--corr-prune-threshold", type=float, default=None)
     p.add_argument("--run-id", type=str, default=None)
     p.add_argument("--arff-path", type=str, default="dataset.arff")
     p.add_argument("--target-col", type=str, default=None)
+    p.add_argument("--xgb-jobs", type=int, default=1)
+    p.add_argument("--extratrees-jobs", type=int, default=1)
+    p.add_argument("--shap-max-samples", type=int, default=1200)
+    p.add_argument("--shap-sample-ratio", type=float, default=0.05)
+    p.add_argument("--shap-sample-ratio-xgb", type=float, default=0.10)
     return p.parse_args()
 
 
@@ -87,15 +95,36 @@ def _load_allstate(arff_path: str, target_col: str | None) -> tuple[pd.DataFrame
     return clean, y_clean, list(clean.columns)
 
 
-def _fit_predict(model_name: str, seed: int, X_train: np.ndarray, y_train: np.ndarray, X_test: np.ndarray, use_gpu: bool):
-    model = make_model(model_name, seed, use_gpu=use_gpu)
+def _init_worker(arff_path: str, target_col: str | None) -> None:
+    global _DATASET_CACHE
+    _DATASET_CACHE = _load_allstate(arff_path, target_col)
+
+
+def _get_cached_dataset(arff_path: str, target_col: str | None) -> tuple[pd.DataFrame, pd.Series, list[str]]:
+    global _DATASET_CACHE
+    if _DATASET_CACHE is None:
+        _DATASET_CACHE = _load_allstate(arff_path, target_col)
+    return _DATASET_CACHE
+
+
+def _fit_predict(
+    model_name: str,
+    seed: int,
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_test: np.ndarray,
+    use_gpu: bool,
+    xgb_jobs: int,
+    extratrees_jobs: int,
+):
+    model = make_model(model_name, seed, use_gpu=use_gpu, xgb_jobs=xgb_jobs, extratrees_jobs=extratrees_jobs)
     try:
         t0 = time.perf_counter()
         model.fit(X_train, y_train)
         train_s = time.perf_counter() - t0
     except Exception:
         if use_gpu and model_name == "xgboost":
-            model = make_model(model_name, seed, use_gpu=False)
+            model = make_model(model_name, seed, use_gpu=False, xgb_jobs=xgb_jobs, extratrees_jobs=extratrees_jobs)
             t0 = time.perf_counter()
             model.fit(X_train, y_train)
             train_s = time.perf_counter() - t0
@@ -113,13 +142,16 @@ def _run_job(
     model_name: str,
     strategy: str,
     folds: int,
-    k_levels: list[float],
-    done: set[tuple],
+    pending_k: list[float],
     arff_path: str,
     target_col: str | None,
     corr_prune_threshold: float | None,
     shap_sample_ratio: float,
+    shap_sample_ratio_xgb: float,
+    shap_max_samples: int,
     use_gpu: bool,
+    xgb_jobs: int,
+    extratrees_jobs: int,
     raw_path: str,
     sel_path: str,
     imp_path: str,
@@ -129,7 +161,7 @@ def _run_job(
     lock_imp: str,
     lock_err: str,
 ) -> tuple[int, int]:
-    X_df, y_s, feature_names = _load_allstate(arff_path, target_col)
+    X_df, y_s, feature_names = _get_cached_dataset(arff_path, target_col)
     kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
     tr, te = list(kf.split(X_df))[fold - 1]
     X_tr_raw = X_df.iloc[tr].to_numpy()
@@ -146,20 +178,27 @@ def _run_job(
 
     print(f"job seed={seed} fold={fold}/{folds} model={model_name} strategy={strategy}", flush=True)
 
+    if not pending_k:
+        return 1, 0
+
     ranking = None
     ranking_pruned = None
     ranking_scores = None
     selection_time_s = 0.0
     try:
         t_sel = time.perf_counter()
+        ratio = shap_sample_ratio_xgb if model_name == "xgboost" else shap_sample_ratio
         ranking, ranking_scores = strategy_rank_with_scores(
             strategy=strategy,
             X_train=X_tr,
             y_train=y_tr,
             seed=seed,
             model_name=model_name,
-            shap_sample_ratio=shap_sample_ratio,
+            shap_sample_ratio=ratio,
             use_gpu=use_gpu,
+            shap_max_samples=shap_max_samples,
+            xgb_jobs=xgb_jobs,
+            extratrees_jobs=extratrees_jobs,
         )
         ranking_pruned = prune_ranking_by_correlation(ranking, X_tr, corr_prune_threshold)
         selection_time_s = time.perf_counter() - t_sel
@@ -197,11 +236,8 @@ def _run_job(
         return 1, 0
 
     wrote = 0
-    for i, k_pct in enumerate(k_levels, start=1):
-        print(f"k {i}/{len(k_levels)} ({int(k_pct*100)}%)", flush=True)
-        key = ("Allstate", model_name, strategy, float(k_pct), int(fold), int(seed))
-        if key in done:
-            continue
+    for i, k_pct in enumerate(pending_k, start=1):
+        print(f"k {i}/{len(pending_k)} ({int(k_pct*100)}%)", flush=True)
         try:
             if k_pct == 1.0:
                 idx = np.arange(n_features)
@@ -214,7 +250,7 @@ def _run_job(
                 Xtr_sel, Xte_sel = X_tr[:, idx], X_te[:, idx]
 
             t0 = time.perf_counter()
-            pred, train_s, pred_s = _fit_predict(model_name, seed, Xtr_sel, y_tr, Xte_sel, use_gpu)
+            pred, train_s, pred_s = _fit_predict(model_name, seed, Xtr_sel, y_tr, Xte_sel, use_gpu, xgb_jobs, extratrees_jobs)
             total_s = (time.perf_counter() - t0) + local_sel_s
             mape = float(mean_absolute_percentage_error(y_te, pred))
             mse = float(mean_squared_error(y_te, pred))
@@ -290,32 +326,40 @@ def run_experiments_allstate(pmap: dict[str, Path], cfg, args: argparse.Namespac
         for _, r in existing.iterrows():
             done.add((str(r["dataset"]), str(r["model"]), str(r["strategy"]), float(r["k_pct"]), int(r["fold"]), int(r["repeat_seed"])))
 
-    jobs = [(seed, fold, model, strategy) for seed in repeats for fold in range(1, folds + 1) for model in MODELS for strategy in STRATEGIES]
+    all_jobs = [(seed, fold, model, strategy) for seed in repeats for fold in range(1, folds + 1) for model in MODELS for strategy in STRATEGIES]
+    jobs: list[tuple[int, int, str, str, list[float]]] = []
+    for seed, fold, model, strategy in all_jobs:
+        pending_k = [k for k in k_levels if ("Allstate", model, strategy, float(k), int(fold), int(seed)) not in done]
+        if pending_k:
+            jobs.append((seed, fold, model, strategy, pending_k))
     total = len(jobs)
-    logging.info("Planned jobs=%d workers=%d", total, cfg.workers)
+    logging.info("Planned jobs=%d pending jobs=%d workers=%d", len(all_jobs), total, cfg.workers)
+    if total == 0:
+        logging.info("Nothing to run. Resume found all rows already computed.")
+        return
 
     pbar = tqdm(total=total, desc="Exp1.1 jobs", unit="job")
     if cfg.workers <= 1:
-        for seed, fold, model, strategy in jobs:
+        for seed, fold, model, strategy, pending_k in jobs:
             done_job, wrote = _run_job(
-                seed, fold, model, strategy, folds, k_levels, done,
-                args.arff_path, args.target_col, cfg.corr_prune_threshold, cfg.shap_sample_ratio, cfg.use_gpu,
+                seed, fold, model, strategy, folds, pending_k,
+                args.arff_path, args.target_col, cfg.corr_prune_threshold, args.shap_sample_ratio, args.shap_sample_ratio_xgb, args.shap_max_samples, cfg.use_gpu, args.xgb_jobs, args.extratrees_jobs,
                 str(raw_path), str(sel_path), str(imp_path), str(err_path),
                 str(lock_raw), str(lock_sel), str(lock_imp), str(lock_err),
             )
             pbar.update(done_job)
             logging.info("job done seed=%d fold=%d model=%s strategy=%s rows=%d", seed, fold, model, strategy, wrote)
     else:
-        with ProcessPoolExecutor(max_workers=cfg.workers) as ex:
+        with ProcessPoolExecutor(max_workers=cfg.workers, initializer=_init_worker, initargs=(args.arff_path, args.target_col)) as ex:
             futs = [
                 ex.submit(
                     _run_job,
-                    seed, fold, model, strategy, folds, k_levels, done,
-                    args.arff_path, args.target_col, cfg.corr_prune_threshold, cfg.shap_sample_ratio, cfg.use_gpu,
+                    seed, fold, model, strategy, folds, pending_k,
+                    args.arff_path, args.target_col, cfg.corr_prune_threshold, args.shap_sample_ratio, args.shap_sample_ratio_xgb, args.shap_max_samples, cfg.use_gpu, args.xgb_jobs, args.extratrees_jobs,
                     str(raw_path), str(sel_path), str(imp_path), str(err_path),
                     str(lock_raw), str(lock_sel), str(lock_imp), str(lock_err),
                 )
-                for seed, fold, model, strategy in jobs
+                for seed, fold, model, strategy, pending_k in jobs
             ]
             for fut in as_completed(futs):
                 done_job, _wrote = fut.result()
@@ -346,6 +390,7 @@ def main() -> None:
         return
 
     if args.step in ["all", "experiments"]:
+        _init_worker(args.arff_path, args.target_col)
         run_experiments_allstate(pmap, cfg, args)
 
     if args.step in ["all", "summary"]:

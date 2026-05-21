@@ -35,14 +35,22 @@ def score_rfe(X_train: np.ndarray, y_train: np.ndarray, seed: int) -> np.ndarray
     return ranks.max() - ranks + 1.0
 
 
-def rank_tree_importance(X_train: np.ndarray, y_train: np.ndarray, seed: int) -> np.ndarray:
-    model = ExtraTreesRegressor(n_estimators=200, random_state=seed, n_jobs=-1)
+def rank_tree_importance(X_train: np.ndarray, y_train: np.ndarray, seed: int, extratrees_jobs: int | None = None) -> np.ndarray:
+    model = ExtraTreesRegressor(
+        n_estimators=200,
+        random_state=seed,
+        n_jobs=-1 if extratrees_jobs is None else max(1, int(extratrees_jobs)),
+    )
     model.fit(X_train, y_train)
     return np.argsort(model.feature_importances_)[::-1]
 
 
-def score_tree_importance(X_train: np.ndarray, y_train: np.ndarray, seed: int) -> np.ndarray:
-    model = ExtraTreesRegressor(n_estimators=200, random_state=seed, n_jobs=-1)
+def score_tree_importance(X_train: np.ndarray, y_train: np.ndarray, seed: int, extratrees_jobs: int | None = None) -> np.ndarray:
+    model = ExtraTreesRegressor(
+        n_estimators=200,
+        random_state=seed,
+        n_jobs=-1 if extratrees_jobs is None else max(1, int(extratrees_jobs)),
+    )
     model.fit(X_train, y_train)
     return model.feature_importances_
 
@@ -54,16 +62,27 @@ def rank_shap(
     model_name: str,
     sample_ratio: float,
     use_gpu: bool,
+    shap_max_samples: int | None = None,
+    xgb_jobs: int | None = None,
+    extratrees_jobs: int | None = None,
 ) -> np.ndarray:
     n_rows = X_train.shape[0]
     n_sample = max(50, int(round(n_rows * sample_ratio)))
+    if shap_max_samples is not None:
+        n_sample = min(n_sample, max(50, int(shap_max_samples)))
     n_sample = min(n_rows, n_sample)
     rng = np.random.default_rng(seed)
     sample_idx = rng.choice(n_rows, size=n_sample, replace=False)
     X_sample = X_train[sample_idx]
     y_sample = y_train[sample_idx]
 
-    model = make_model(model_name, seed=seed, use_gpu=use_gpu)
+    model = make_model(
+        model_name,
+        seed=seed,
+        use_gpu=use_gpu,
+        xgb_jobs=xgb_jobs,
+        extratrees_jobs=extratrees_jobs,
+    )
     model.fit(X_sample, y_sample)
 
     if model_name == "ridge":
@@ -85,16 +104,27 @@ def score_shap(
     model_name: str,
     sample_ratio: float,
     use_gpu: bool,
+    shap_max_samples: int | None = None,
+    xgb_jobs: int | None = None,
+    extratrees_jobs: int | None = None,
 ) -> np.ndarray:
     n_rows = X_train.shape[0]
     n_sample = max(50, int(round(n_rows * sample_ratio)))
+    if shap_max_samples is not None:
+        n_sample = min(n_sample, max(50, int(shap_max_samples)))
     n_sample = min(n_rows, n_sample)
     rng = np.random.default_rng(seed)
     sample_idx = rng.choice(n_rows, size=n_sample, replace=False)
     X_sample = X_train[sample_idx]
     y_sample = y_train[sample_idx]
 
-    model = make_model(model_name, seed=seed, use_gpu=use_gpu)
+    model = make_model(
+        model_name,
+        seed=seed,
+        use_gpu=use_gpu,
+        xgb_jobs=xgb_jobs,
+        extratrees_jobs=extratrees_jobs,
+    )
     model.fit(X_sample, y_sample)
 
     if model_name == "ridge":
@@ -145,6 +175,9 @@ def strategy_rank_with_scores(
     model_name: str,
     shap_sample_ratio: float,
     use_gpu: bool,
+    shap_max_samples: int | None = None,
+    xgb_jobs: int | None = None,
+    extratrees_jobs: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     if strategy == "mi":
         scores = score_mutual_info(X_train, y_train, seed)
@@ -153,9 +186,19 @@ def strategy_rank_with_scores(
         scores = score_rfe(X_train, y_train, seed)
         return np.argsort(scores)[::-1], scores
     if strategy == "tree":
-        scores = score_tree_importance(X_train, y_train, seed)
+        scores = score_tree_importance(X_train, y_train, seed, extratrees_jobs=extratrees_jobs)
         return np.argsort(scores)[::-1], scores
     if strategy == "shap":
-        scores = score_shap(X_train, y_train, seed, model_name, shap_sample_ratio, use_gpu)
+        scores = score_shap(
+            X_train,
+            y_train,
+            seed,
+            model_name,
+            shap_sample_ratio,
+            use_gpu,
+            shap_max_samples=shap_max_samples,
+            xgb_jobs=xgb_jobs,
+            extratrees_jobs=extratrees_jobs,
+        )
         return np.argsort(scores)[::-1], scores
     raise ValueError(f"Unknown strategy: {strategy}")
