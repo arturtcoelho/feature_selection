@@ -1,0 +1,109 @@
+\documentclass[12pt]{report}
+
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{titlesec}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{array}
+\usepackage{times}
+\usepackage{upgreek}
+\usepackage{todonotes}
+\usepackage{url}
+\usepackage{longtable}
+\usepackage{pdflscape}
+\usepackage{booktabs}
+
+\graphicspath{{assets/}}
+\renewcommand{\contentsname}{Table of Contents}
+\doublespacing
+
+\title{Academic Thesis Title}
+\author{Student Name}
+\date{Place and Date}
+
+\begin{document}
+
+\begin{titlepage}
+    \begin{center}
+        \vspace*{1cm}
+
+        \Huge
+        \textbf{Academic Thesis Title}\\
+
+        \vspace{0.5cm}
+
+        \LARGE
+        Thesis subtitle (optional)
+
+        \vspace{3cm}
+
+        \textbf{Student:}\\
+        Student Name\\
+
+        \vspace{0.5cm}
+
+        \textbf{Supervisor:}\\
+        Supervisor Name\\
+
+        \vspace{1cm}
+
+        \textbf{Institution:}\\
+        University or Institution Name\\
+
+        \vspace{0.5cm}
+
+        \textbf{Program:}\\
+        Program / Master's Degree / Course
+
+        \vfill
+
+        \Large
+        Place and Date
+
+    \end{center}
+\end{titlepage}
+
+\pagenumbering{roman}
+
+\begin{center}
+\LARGE
+\textbf{Acknowledgements}
+\end{center}
+
+Write acknowledgements here.
+
+\newpage
+
+\begin{center}
+\LARGE
+\textbf{Abstract}
+\end{center}
+
+Write the thesis abstract here.
+
+\vspace{0.5cm}
+
+\textbf{Keywords:} keyword 1, keyword 2, keyword 3, keyword 4.
+
+\newpage
+
+\tableofcontents
+\newpage
+
+\listoffigures
+\listoftables
+\newpage
+
+\pagenumbering{arabic}
+
+\input{chapter1}
+\input{chapter2}
+\input{chapter3}
+\input{chapter4}
+\input{chapter5}
+\input{bibliography}
+
+\end{document}

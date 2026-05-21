@@ -1,0 +1,105 @@
+\chapter{Methodology and Results}
+
+\section{Methodological Roadmap}
+
+The empirical work follows a two-stage logic. Stage 1 (Experiment 1) is a broad screening study designed to identify competitive feature selection candidates under diverse conditions. Stage 2 (Unified Experiment 2) is a controlled study that reuses one protocol on two datasets, denoted as Experiment 2A (Superconductor) and Experiment 2B (Allstate).
+
+This structure is intentional: broad evidence is used to select promising directions, while controlled replication is used to validate whether those directions remain advantageous when confounding factors are reduced.
+
+\section{Stage 1: Experiment 1 Screening}
+
+Experiment 1 evaluates three datasets, three models, and four feature selection methods. The output of this phase is used as a decision filter for later experiments.
+
+\input{assets/generated/tab_exp1_winners.tex}
+
+The winner table shows that no single strategy dominates every dataset-model pair. However, tree-based and SHAP-based methods remain competitive in the benchmark and motivate focused follow-up under stricter control. This result is important for the narrative of the thesis: a method can appear promising in broad comparisons yet still fail to deliver a robust cost-adjusted advantage in a controlled setting.
+
+\section{Stage 2: Unified Experiment 2 Design (2A + 2B)}
+
+Unified Experiment 2 standardizes model family, validation protocol, and strategy definitions, then applies the same procedure to two datasets with different feature characteristics.
+
+\subsection{Protocol}
+
+For each dataset instance, repeated folds and seeds are executed across a grid of feature-retention ratios. At each run unit, the process is selection $\rightarrow$ model fit $\rightarrow$ prediction $\rightarrow$ metric and runtime logging. All outputs are persisted in run-isolated directories and can be resumed safely.
+
+\subsection{Compared strategies}
+
+The comparison includes \texttt{native\_fi}, \texttt{custom\_shap\_rfe}, and \texttt{hybrid\_fi\_custom\_shap\_rfe}, with \texttt{baseline} represented by \texttt{k=1.0}. This setup isolates whether SHAP-centric selection improves quality enough to justify additional computational cost.
+
+\section{Aggregate Results for Unified Experiment 2}
+
+\subsection{Predictive behavior across feature budgets}
+
+Figure~\ref{fig:rmse_unified} summarizes RMSE trends across \texttt{k} for both dataset instances. Performance differences among strategies are generally modest relative to absolute target scale, especially at medium and high retention levels.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1.0\textwidth]{generated/fig_ch4_rmse_vs_k_unified.png}
+\caption{Unified Experiment 2: RMSE versus retained-feature ratio (k) for Experiment 2A and 2B.}
+\label{fig:rmse_unified}
+\end{figure}
+
+\subsection{Runtime behavior and compute asymmetry}
+
+Figures~\ref{fig:total_time_unified} and~\ref{fig:selection_time_unified} show the most consistent result in this thesis: SHAP-heavy hybrid selection introduces a large runtime premium, while predictive differences remain comparatively small.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1.0\textwidth]{generated/fig_ch4_total_time_vs_k_unified.png}
+\caption{Unified Experiment 2: total runtime versus k for Experiment 2A and 2B.}
+\label{fig:total_time_unified}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1.0\textwidth]{generated/fig_ch4_selection_time_vs_k_unified.png}
+\caption{Unified Experiment 2: selection runtime versus k for Experiment 2A and 2B.}
+\label{fig:selection_time_unified}
+\end{figure}
+
+\input{assets/generated/tab_exp2_unified_k.tex}
+
+Table~\ref{tab:exp2_unified_k} provides representative numeric snapshots at \texttt{k=0.10}, \texttt{k=0.50}, and \texttt{k=1.00}. At \texttt{k=0.10}, both datasets already show the same qualitative pattern: close predictive metrics across strategies, but a major compute gap for hybrid SHAP-oriented selection. At \texttt{k=1.00}, baseline behavior confirms the expected full-feature reference.
+
+\section{Cross-Dataset Synthesis (2A and 2B)}
+
+Taken together, Experiment 2A and 2B support a common conclusion: feature selection strategy changes often produce second-order differences in predictive quality compared with first-order differences in computational cost. The pattern is not absolute in every fold-seed instance, but it is stable enough at aggregate level to inform engineering choice.
+
+This does not imply SHAP-based selection is ineffective. Instead, it suggests that in these settings SHAP's strongest value is interpretive and diagnostic, while pure predictive gains are limited.
+
+\section{Deep-Dive Case Studies: Similar Accuracy, Different Features}
+
+Aggregate metrics can hide structural differences in selected subsets. To expose that behavior, three showcase cases were selected with two criteria: near-identical RMSE and non-trivial feature-set divergence.
+
+\input{assets/generated/tab_showcase_cases.tex}
+
+In the selected cases, relative RMSE differences are extremely small, while Jaccard overlap remains moderate-to-low and symmetric feature differences are non-negligible. This supports the redundant-subspace hypothesis: different feature subsets can map to effectively the same predictive quality.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{generated/fig_ch4_case_scatter_overlap_vs_rmse.png}
+\caption{Candidate-pair landscape: relative RMSE difference versus feature-set overlap (Jaccard).}
+\label{fig:case_scatter}
+\end{figure}
+
+The scatter in Figure~\ref{fig:case_scatter} reinforces the point visually: low error deltas can occur even when overlap is far from complete. From a practical perspective, this weakens the assumption that one "correct" subset must emerge from the selection process.
+
+\section{Interpretation}
+
+The combined evidence suggests an efficiency-utility asymmetry:
+
+\begin{itemize}
+    \item Predictive quality is often similar across \texttt{native\_fi}, \texttt{custom\_shap\_rfe}, and hybrid variants.
+    \item SHAP-heavy selection paths can substantially increase runtime.
+    \item Feature subset identity is not unique, even when predictive outcomes are nearly identical.
+\end{itemize}
+
+Therefore, selecting SHAP-based feature elimination should be justified primarily by interpretability requirements, auditability needs, or model-understanding goals, rather than by an expectation of consistent metric improvements.
+
+\section{Threats to Validity}
+
+Several limitations are relevant. First, conclusions are tied to the chosen datasets and XGBoost-centered protocol. Second, runtime values depend on implementation details and available hardware, even though relative trends are informative. Third, "practical equivalence" in predictive quality is contextual and should be interpreted with domain-specific tolerances. Finally, deep-dive case studies are explanatory complements to aggregate statistics, not replacements for them.
+
+\section{Chapter Conclusion}
+
+This chapter showed how broad screening (Experiment 1) and controlled replication (Unified Experiment 2A/2B) interact to answer the thesis question. The evidence indicates that SHAP-based selection is a strong interpretive tool but not a consistent cost-effective winner in predictive performance. The most robust empirical signal is the recurring gap between marginal quality differences and substantial computational overhead.

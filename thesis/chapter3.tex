@@ -1,0 +1,96 @@
+\chapter{Project Hypothesis and Proposed Method}
+
+\section{Research Question}
+
+This thesis investigates a practical question in applied machine learning: \textit{is SHAP-based feature selection worth its additional complexity and computational cost when compared with simpler feature-importance-based alternatives?} The comparison is made under a unified evaluation framework that jointly considers predictive quality, runtime cost, feature-set stability, and qualitative interpretability evidence.
+
+The motivation is straightforward. SHAP-derived rankings are often perceived as more principled because they are connected to game-theoretic attribution, but in production settings the selection method must also be justified in terms of reproducibility and efficiency. This work treats feature selection as an engineering decision problem, not only a statistical ranking problem.
+
+\section{Multi-Stage Hypothesis Structure}
+
+The thesis is organized around a staged hypothesis design.
+
+\subsection{H1: Screening hypothesis (Experiment 1)}
+
+In a broad benchmark across multiple datasets, models, and selection techniques, SHAP-based and tree-importance-based selection are expected to be among the most competitive methods. This stage is exploratory and is used to identify promising candidates for deeper analysis.
+
+\subsection{H2: Controlled performance hypothesis (Unified Experiment 2)}
+
+When the model family and protocol are fixed, SHAP-based selection is not expected to produce consistent predictive gains over simpler feature-importance alternatives. In other words, performance parity is expected to be common.
+
+\subsection{H3: Computational cost hypothesis (Unified Experiment 2)}
+
+Even when predictive performance is similar, SHAP-oriented pipelines are expected to incur higher computational overhead, especially in selection-heavy variants.
+
+\subsection{H4: Redundant-subspace hypothesis (Deep-dive cases)}
+
+Near-identical predictive performance can emerge from substantially different selected feature subsets. This implies that, for these datasets, multiple feature subspaces can support similar model quality.
+
+\section{Experimental Design Overview}
+
+The empirical design has two phases.
+
+\subsection{Phase I: Experiment 1 (broad benchmark)}
+
+Experiment 1 compares three regression models (Ridge, Extra Trees, XGBoost), three datasets (Bike Sharing, Communities and Crime, Superconductor), and four feature selection techniques (mutual information, recursive feature elimination, SHAP-based ranking, and tree-based importance ranking). The goal is not final model selection, but candidate screening under heterogeneous conditions.
+
+\subsection{Phase II: Unified Experiment 2 (focused validation)}
+
+A single, controlled protocol is then applied to two datasets:
+
+\begin{itemize}
+    \item \textbf{Experiment 2A:} Superconductor dataset.
+    \item \textbf{Experiment 2B:} Allstate dataset (ARFF source with categorical support enabled).
+\end{itemize}
+
+Although implemented as separate scripts during development, both runs represent the same experiment at the thesis level: same model family, same strategy definitions, same cross-validation/repetition logic, and same output schema.
+
+\section{Materials and Computational Setup}
+
+\subsection{Data}
+
+The thesis uses five datasets in total across phases. Experiment 1 uses Bike Sharing, Communities and Crime, and Superconductor. Unified Experiment 2 uses Superconductor (2A) and Allstate (2B), where 2B introduces high-cardinality categorical variables and a different signal-to-noise regime.
+
+\subsection{Model family}
+
+Unified Experiment 2 fixes the predictor to XGBoost to remove model-choice confounding and isolate the effect of feature selection. For Allstate, categorical handling is enabled directly in the model pipeline.
+
+\subsection{Selection strategies in Unified Experiment 2}
+
+The following strategies are compared:
+
+\begin{itemize}
+    \item \texttt{baseline}: no feature dropping at \texttt{k=1.0}.
+    \item \texttt{native\_fi}: feature selection from native model importance ranking.
+    \item \texttt{custom\_shap\_rfe}: SHAP-guided recursive elimination loop.
+    \item \texttt{hybrid\_fi\_custom\_shap\_rfe}: FI pre-filtering followed by SHAP-guided elimination.
+\end{itemize}
+
+Retention ratios are evaluated over a grid of \texttt{k} values, allowing a cost-performance tradeoff analysis under varying feature budgets.
+
+\section{Evaluation Criteria}
+
+Evaluation is multi-dimensional:
+
+\begin{itemize}
+    \item \textbf{Predictive quality:} RMSE, MAE, and MAPE.
+    \item \textbf{Computational efficiency:} selection, training, prediction, and total runtime.
+    \item \textbf{Stability and structural behavior:} consistency and overlap of selected feature subsets across folds and seeds.
+    \item \textbf{Interpretive evidence:} targeted case studies comparing similarly performing runs with distinct selected subsets.
+\end{itemize}
+
+This design prevents over-reliance on a single metric and supports a practical conclusion about methodological utility.
+
+\section{Proposed Contributions}
+
+The thesis contributes in three ways:
+
+\begin{itemize}
+    \item A staged protocol that links broad benchmarking to controlled replication.
+    \item A unified Experiment 2 framing that treats cross-dataset replication as a first-class requirement.
+    \item A case-based analysis showing how feature subset identity and predictive parity can coexist, clarifying when SHAP selection is an interpretability choice rather than a pure performance choice.
+\end{itemize}
+
+\section{Validity Considerations}
+
+Three boundaries should be acknowledged. First, conclusions are grounded in the studied datasets and model class, not universal across all domains. Second, practical equivalence in predictive metrics is interpreted in the context of repeated folds and seeds, not from single-run differences. Third, runtime outcomes are implementation- and hardware-sensitive, though the relative overhead patterns remain informative for engineering decisions.

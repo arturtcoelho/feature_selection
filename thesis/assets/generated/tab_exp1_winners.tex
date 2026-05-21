@@ -1,0 +1,19 @@
+\begin{table}
+\caption{Experiment 1 winners by dataset-model pair (lower RMSE is better).}
+\label{tab:exp1_winners}
+\begin{tabular}{lllrrr}
+\toprule
+Dataset & Model & Strategy & RMSE & Selection time (s) & Total time (s) \\
+\midrule
+Bike Sharing & extratrees & tree & 58.6830 & 1.6236 & 3.1385 \\
+Bike Sharing & ridge & rfe & 143.4365 & 0.0537 & 0.0568 \\
+Bike Sharing & xgboost & tree & 57.5420 & 1.9285 & 2.9359 \\
+Communities and Crime & extratrees & tree & 0.1344 & 1.5295 & 2.9004 \\
+Communities and Crime & ridge & rfe & 0.1367 & 0.7994 & 0.8358 \\
+Communities and Crime & xgboost & mi & 0.1384 & 1.1298 & 2.2558 \\
+Superconductor & extratrees & rfe & 9.2425 & 1.0803 & 6.7431 \\
+Superconductor & ridge & rfe & 19.0345 & 1.6656 & 1.6906 \\
+Superconductor & xgboost & shap & 10.2085 & 22.8623 & 24.1957 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,3 +1,14 @@
 __pycache__
 pre_study/data
 venv
+*.aux
+*.bbl
+*.blg
+*.lof
+*.log
+*.lot
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz

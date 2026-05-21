@@ -1,0 +1,13 @@
+\begin{table}
+\caption{Showcase cases with near-identical RMSE and divergent feature subsets.}
+\label{tab:showcase_cases}
+\begin{tabular}{lrrrllrrrr}
+\toprule
+Dataset instance & k & Fold & Seed & Strategy A & Strategy B & Abs. RMSE diff & Rel. RMSE diff & Jaccard & Symmetric diff size \\
+\midrule
+Exp2A-Superconductor & 0.100000 & 6 & 123 & native\_fi & custom\_shap\_rfe & 0.002737 & 0.000253 & 0.454545 & 6 \\
+Exp2B-Allstate & 0.100000 & 6 & 999 & native\_fi & custom\_shap\_rfe & 0.126220 & 0.000061 & 0.368421 & 12 \\
+Exp2A-Superconductor & 0.150000 & 6 & 123 & native\_fi & custom\_shap\_rfe & 0.001648 & 0.000157 & 0.411765 & 10 \\
+\bottomrule
+\end{tabular}
+\end{table}
