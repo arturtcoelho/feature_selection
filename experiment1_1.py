@@ -26,7 +26,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--resume", action="store_true", help="Resume experiments from existing raw CSV")
     parser.add_argument("--dry-run", action="store_true", help="Validate and print plan without running")
-    parser.add_argument("--workers", type=int, default=None, help="Process workers for model-level parallelism")
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Process workers for model-level parallelism (default 1 for visible progress logs)",
+    )
     parser.add_argument("--no-gpu", action="store_true", help="Force CPU mode for GPU-capable models")
     parser.add_argument(
         "--metric",
@@ -119,8 +124,7 @@ def main() -> None:
             "Use --resume to continue it, or choose a new --run-id."
         )
     cfg = build_run_config(quick=args.quick)
-    if args.workers is not None:
-        cfg = replace(cfg, workers=max(1, args.workers))
+    cfg = replace(cfg, workers=max(1, args.workers))
     if args.no_gpu:
         cfg = replace(cfg, use_gpu=False)
     if args.corr_prune_threshold is not None:
@@ -135,8 +139,13 @@ def main() -> None:
         cfg.corr_prune_threshold,
         p["root"],
     )
+    logging.info("Dataset scope locked: Allstate only")
+    logging.info("Model grid: ridge + extratrees + xgboost")
+    logging.info("Feature-selection grid: mi + rfe + tree + shap")
+    logging.info("GPU note: only xgboost uses GPU; ridge/extratrees are CPU models")
+    est = 1 * 3 * 4 * len(cfg.k_levels) * cfg.folds * len(cfg.repeat_seeds)
+    logging.info("Planned observations: %d", est)
     if args.dry_run:
-        est = 1 * 3 * 4 * len(cfg.k_levels) * cfg.folds * len(cfg.repeat_seeds)
         print(f"Dry run plan: estimated observations={est}")
         return
 
