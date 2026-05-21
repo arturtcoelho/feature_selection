@@ -3,9 +3,12 @@ from __future__ import annotations
 import logging
 import random
 import time
+import traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
-from typing import Any
+import fcntl
+from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -18,6 +21,21 @@ from src.feature_selection import prune_ranking_by_correlation, select_top_k_ind
 from src.models import make_model
 from src.preprocessing import scale_train_test
 from src.results_io import RAW_COLUMNS
+
+
+def _append_csv_locked(df: pd.DataFrame, target: str | None, lock_target: str | None) -> None:
+    if target is None or lock_target is None or df.empty:
+        return
+    target_path = Path(target)
+    lock_path = Path(lock_target)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w", encoding="utf-8") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        file_exists = target_path.exists() and target_path.stat().st_size > 0
+        with open(target_path, "a", encoding="utf-8", newline="") as out:
+            df.to_csv(out, index=False, header=not file_exists)
+            out.flush()
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 
 def _fit_predict_timed(
@@ -81,7 +99,13 @@ class ModelTask:
     model_name: str
 
 
-def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]) -> tuple[list[dict], list[dict], list[dict]]:
+def _run_model_task(
+    task: ModelTask,
+    ds: dict,
+    run_config,
+    done_keys: set[tuple],
+    stream_paths: dict[str, str] | None = None,
+) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
     random.seed(task.repeat_seed)
     np.random.seed(task.repeat_seed)
 
@@ -92,16 +116,17 @@ def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]
     results: list[dict[str, Any]] = []
     selections: list[dict[str, Any]] = []
     importances: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
 
-    print(f"repeat {task.repeat_idx}/{task.repeat_total} (seed={task.repeat_seed})")
-    print(f"dataset {task.dataset_idx}/{task.dataset_total} ({task.dataset_name})")
-    print(f"model {task.model_idx}/{task.model_total} ({task.model_name})")
+    print(f"repeat {task.repeat_idx}/{task.repeat_total} (seed={task.repeat_seed})", flush=True)
+    print(f"dataset {task.dataset_idx}/{task.dataset_total} ({task.dataset_name})", flush=True)
+    print(f"model {task.model_idx}/{task.model_total} ({task.model_name})", flush=True)
 
     kf = KFold(n_splits=run_config.folds, shuffle=True, random_state=task.repeat_seed)
     folds = list(kf.split(X_df))
 
     for fold_num, (train_idx, test_idx) in enumerate(folds, start=1):
-        print(f"fold {fold_num}/{run_config.folds}")
+        print(f"fold {fold_num}/{run_config.folds}", flush=True)
         X_train_raw = X_df.iloc[train_idx].to_numpy()
         X_test_raw = X_df.iloc[test_idx].to_numpy()
         y_train = y_series.iloc[train_idx].to_numpy()
@@ -114,24 +139,43 @@ def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]
         baseline_key = (task.dataset_name, task.model_name, 1.0, fold_num, task.repeat_seed)
 
         for strategy_idx, strategy in enumerate(STRATEGIES, start=1):
-            print(f"strategy {strategy_idx}/{len(STRATEGIES)} ({strategy})")
+            print(f"strategy {strategy_idx}/{len(STRATEGIES)} ({strategy})", flush=True)
             ranking = None
             ranking_pruned = None
             ranking_scores = None
             selection_time_s = 0.0
             if any(k < 1.0 for k in run_config.k_levels):
-                t0 = time.perf_counter()
-                ranking, ranking_scores = strategy_rank_with_scores(
-                    strategy=strategy,
-                    X_train=X_train,
-                    y_train=y_train,
-                    seed=task.repeat_seed,
-                    model_name=task.model_name,
-                    shap_sample_ratio=run_config.shap_sample_ratio,
-                    use_gpu=run_config.use_gpu,
-                )
-                ranking_pruned = prune_ranking_by_correlation(ranking, X_train, run_config.corr_prune_threshold)
-                selection_time_s = time.perf_counter() - t0
+                try:
+                    t0 = time.perf_counter()
+                    ranking, ranking_scores = strategy_rank_with_scores(
+                        strategy=strategy,
+                        X_train=X_train,
+                        y_train=y_train,
+                        seed=task.repeat_seed,
+                        model_name=task.model_name,
+                        shap_sample_ratio=run_config.shap_sample_ratio,
+                        use_gpu=run_config.use_gpu,
+                    )
+                    ranking_pruned = prune_ranking_by_correlation(ranking, X_train, run_config.corr_prune_threshold)
+                    selection_time_s = time.perf_counter() - t0
+                except Exception as exc:  # noqa: BLE001
+                    tb = traceback.format_exc()
+                    err = {
+                        "dataset": task.dataset_name,
+                        "model": task.model_name,
+                        "strategy": strategy,
+                        "k_pct": np.nan,
+                        "fold": fold_num,
+                        "repeat_seed": task.repeat_seed,
+                        "stage": "ranking",
+                        "error_type": type(exc).__name__,
+                        "error": str(exc),
+                        "traceback": tb,
+                    }
+                    errors.append(err)
+                    _append_csv_locked(pd.DataFrame([err]), stream_paths.get("errors") if stream_paths else None, stream_paths.get("lock_errors") if stream_paths else None)
+                    print(f"ERROR ranking dataset={task.dataset_name} model={task.model_name} strategy={strategy} fold={fold_num} seed={task.repeat_seed}: {exc}", flush=True)
+                    continue
 
                 ordered_features = feature_names[ranking].tolist()
                 ordered_scores = [float(ranking_scores[int(i)]) for i in ranking.tolist()]
@@ -149,7 +193,7 @@ def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]
                 )
 
             for k_idx, k_pct in enumerate(run_config.k_levels, start=1):
-                print(f"k {k_idx}/{len(run_config.k_levels)} ({int(k_pct * 100)}%)")
+                print(f"k {k_idx}/{len(run_config.k_levels)} ({int(k_pct * 100)}%)", flush=True)
                 row = {
                     "dataset": task.dataset_name,
                     "model": task.model_name,
@@ -162,47 +206,69 @@ def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]
                 if key in done_keys:
                     continue
 
-                if k_pct == 1.0:
-                    if baseline_key not in baseline_metric_cache:
+                try:
+                    if k_pct == 1.0:
+                        if baseline_key not in baseline_metric_cache:
+                            t_total_0 = time.perf_counter()
+                            preds, train_time_s, predict_time_s = _fit_predict_timed(
+                                task.model_name,
+                                task.repeat_seed,
+                                X_train,
+                                y_train,
+                                X_test,
+                                run_config.use_gpu,
+                            )
+                            total_time_s = time.perf_counter() - t_total_0
+                            mape = mean_absolute_percentage_error(y_test, preds)
+                            mse = mean_squared_error(y_test, preds)
+                            rmse = root_mean_squared_error(y_test, preds)
+                            baseline_metric_cache[baseline_key] = (mape, mse, rmse)
+                            baseline_time_cache[baseline_key] = (train_time_s, predict_time_s, total_time_s)
+                        mape, mse, rmse = baseline_metric_cache[baseline_key]
+                        train_time_s, predict_time_s, total_time_s = baseline_time_cache[baseline_key]
+                        selected_idx = np.arange(n_features)
+                        local_selection_time = 0.0
+                    else:
+                        assert ranking_pruned is not None
+                        selected_idx = select_top_k_indices(ranking_pruned, n_features, k_pct)
+                        X_train_sel = X_train[:, selected_idx]
+                        X_test_sel = X_test[:, selected_idx]
+
                         t_total_0 = time.perf_counter()
                         preds, train_time_s, predict_time_s = _fit_predict_timed(
                             task.model_name,
                             task.repeat_seed,
-                            X_train,
+                            X_train_sel,
                             y_train,
-                            X_test,
+                            X_test_sel,
                             run_config.use_gpu,
                         )
                         total_time_s = time.perf_counter() - t_total_0
                         mape = mean_absolute_percentage_error(y_test, preds)
                         mse = mean_squared_error(y_test, preds)
                         rmse = root_mean_squared_error(y_test, preds)
-                        baseline_metric_cache[baseline_key] = (mape, mse, rmse)
-                        baseline_time_cache[baseline_key] = (train_time_s, predict_time_s, total_time_s)
-                    mape, mse, rmse = baseline_metric_cache[baseline_key]
-                    train_time_s, predict_time_s, total_time_s = baseline_time_cache[baseline_key]
-                    selected_idx = np.arange(n_features)
-                    local_selection_time = 0.0
-                else:
-                    assert ranking_pruned is not None
-                    selected_idx = select_top_k_indices(ranking_pruned, n_features, k_pct)
-                    X_train_sel = X_train[:, selected_idx]
-                    X_test_sel = X_test[:, selected_idx]
-
-                    t_total_0 = time.perf_counter()
-                    preds, train_time_s, predict_time_s = _fit_predict_timed(
-                        task.model_name,
-                        task.repeat_seed,
-                        X_train_sel,
-                        y_train,
-                        X_test_sel,
-                        run_config.use_gpu,
+                        local_selection_time = selection_time_s
+                except Exception as exc:  # noqa: BLE001
+                    tb = traceback.format_exc()
+                    err = {
+                        "dataset": task.dataset_name,
+                        "model": task.model_name,
+                        "strategy": strategy,
+                        "k_pct": float(k_pct),
+                        "fold": fold_num,
+                        "repeat_seed": task.repeat_seed,
+                        "stage": "fit_predict",
+                        "error_type": type(exc).__name__,
+                        "error": str(exc),
+                        "traceback": tb,
+                    }
+                    errors.append(err)
+                    _append_csv_locked(pd.DataFrame([err]), stream_paths.get("errors") if stream_paths else None, stream_paths.get("lock_errors") if stream_paths else None)
+                    print(
+                        f"ERROR fit dataset={task.dataset_name} model={task.model_name} strategy={strategy} k={k_pct} fold={fold_num} seed={task.repeat_seed}: {exc}",
+                        flush=True,
                     )
-                    total_time_s = time.perf_counter() - t_total_0
-                    mape = mean_absolute_percentage_error(y_test, preds)
-                    mse = mean_squared_error(y_test, preds)
-                    rmse = root_mean_squared_error(y_test, preds)
-                    local_selection_time = selection_time_s
+                    continue
 
                 if not np.isfinite(mape):
                     logging.warning(
@@ -243,7 +309,15 @@ def _run_model_task(task: ModelTask, ds: dict, run_config, done_keys: set[tuple]
                         "selected_features": "|".join(feature_names[selected_idx].tolist()),
                     }
                 )
-    return results, selections, importances
+                _append_csv_locked(pd.DataFrame([results[-1]]), stream_paths.get("raw") if stream_paths else None, stream_paths.get("lock_raw") if stream_paths else None)
+                _append_csv_locked(pd.DataFrame([selections[-1]]), stream_paths.get("selections") if stream_paths else None, stream_paths.get("lock_selections") if stream_paths else None)
+                print(
+                    f"saved row dataset={task.dataset_name} model={task.model_name} strategy={strategy} k={k_pct} fold={fold_num} seed={task.repeat_seed}",
+                    flush=True,
+                )
+            if importances:
+                _append_csv_locked(pd.DataFrame([importances[-1]]), stream_paths.get("importances") if stream_paths else None, stream_paths.get("lock_importances") if stream_paths else None)
+    return results, selections, importances, errors
 
 
 def run_experiments(
@@ -252,6 +326,7 @@ def run_experiments(
     existing_raw: pd.DataFrame,
     checkpoint_every_tasks: int = 1,
     checkpoint_callback=None,
+    stream_paths: dict[str, str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     done_keys = build_done_keys(existing_raw)
     result_rows: list[dict[str, Any]] = []
@@ -279,42 +354,56 @@ def run_experiments(
                     )
                 )
 
-    with ProcessPoolExecutor(max_workers=run_config.workers) as executor:
-        future_map = {
-            executor.submit(_run_model_task, task, ds, run_config, done_keys): (task, ds)
-            for task, ds in tasks
-        }
-        progress = tqdm(total=len(future_map), desc="Model tasks")
+    if run_config.workers <= 1:
+        progress = tqdm(total=len(tasks), desc="Model tasks")
         completed = 0
-        for future in as_completed(future_map):
-            task, _ = future_map[future]
-            try:
-                rows, sels, imps = future.result()
-                result_rows.extend(rows)
-                selection_rows.extend(sels)
-                importance_rows.extend(imps)
-            except Exception as exc:  # noqa: BLE001
-                logging.exception(
-                    "Task failed repeat_seed=%d dataset=%s model=%s: %s",
-                    task.repeat_seed,
-                    task.dataset_name,
-                    task.model_name,
-                    exc,
-                )
-                raise
-            finally:
-                progress.update(1)
-                completed += 1
-                if checkpoint_callback is not None and completed % checkpoint_every_tasks == 0:
-                    checkpoint_callback(result_rows, selection_rows, importance_rows)
+        for task, ds in tasks:
+            rows, sels, imps, _errs = _run_model_task(task, ds, run_config, done_keys, stream_paths)
+            result_rows.extend(rows)
+            selection_rows.extend(sels)
+            importance_rows.extend(imps)
+            progress.update(1)
+            completed += 1
+            if checkpoint_callback is not None and completed % checkpoint_every_tasks == 0:
+                checkpoint_callback(result_rows, selection_rows, importance_rows)
         progress.close()
+    else:
+        with ProcessPoolExecutor(max_workers=run_config.workers) as executor:
+            future_map = {
+                executor.submit(_run_model_task, task, ds, run_config, done_keys, stream_paths): (task, ds)
+                for task, ds in tasks
+            }
+            progress = tqdm(total=len(future_map), desc="Model tasks")
+            completed = 0
+            for future in as_completed(future_map):
+                task, _ = future_map[future]
+                try:
+                    rows, sels, imps, _errs = future.result()
+                    result_rows.extend(rows)
+                    selection_rows.extend(sels)
+                    importance_rows.extend(imps)
+                except Exception as exc:  # noqa: BLE001
+                    logging.exception(
+                        "Task failed repeat_seed=%d dataset=%s model=%s: %s",
+                        task.repeat_seed,
+                        task.dataset_name,
+                        task.model_name,
+                        exc,
+                    )
+                    raise
+                finally:
+                    progress.update(1)
+                    completed += 1
+                    if checkpoint_callback is not None and completed % checkpoint_every_tasks == 0:
+                        checkpoint_callback(result_rows, selection_rows, importance_rows)
+            progress.close()
 
     if result_rows:
         new_df = pd.DataFrame(result_rows)
         new_df = new_df[RAW_COLUMNS]
-        raw_df = pd.concat([existing_raw, new_df], ignore_index=True)
+        raw_df = cast(pd.DataFrame, pd.concat([existing_raw, new_df], ignore_index=True))
     else:
-        raw_df = existing_raw.copy()
+        raw_df = cast(pd.DataFrame, existing_raw.copy())
 
     selection_df = pd.DataFrame(selection_rows)
     importance_df = pd.DataFrame(importance_rows)

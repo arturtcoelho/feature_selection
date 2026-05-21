@@ -168,12 +168,24 @@ def main() -> None:
             if imps:
                 pd.DataFrame(imps).to_csv(p["importances"], index=False)
 
+        stream_paths = {
+            "raw": str(p["raw"]),
+            "selections": str(p["selections"]),
+            "importances": str(p["importances"]),
+            "errors": str(p["outputs"] / "errors_raw.csv"),
+            "lock_raw": str(p["outputs"] / "results_raw.csv.lock"),
+            "lock_selections": str(p["outputs"] / "selections_raw.csv.lock"),
+            "lock_importances": str(p["outputs"] / "feature_importances_raw.csv.lock"),
+            "lock_errors": str(p["outputs"] / "errors_raw.csv.lock"),
+        }
+
         raw_df, selection_df, importance_df = run_experiments(
             datasets,
             cfg,
             raw_df,
             checkpoint_every_tasks=1,
             checkpoint_callback=_checkpoint,
+            stream_paths=stream_paths,
         )
         exp_total_s = time.perf_counter() - t_exp_0
         save_raw_results(p["raw"], raw_df)
