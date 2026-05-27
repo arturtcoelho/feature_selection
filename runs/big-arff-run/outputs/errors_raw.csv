@@ -1,0 +1,346 @@
+dataset,model,strategy,k_pct,fold,repeat_seed,stage,error_type,error,traceback
+New Dataset,xgboost,shap,,1,42,ranking,ValueError,could not convert string to float: '[2.9437231E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[2.9437231E3]'
+"
+New Dataset,xgboost,shap,,2,42,ranking,ValueError,could not convert string to float: '[3.585727E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[3.585727E3]'
+"
+New Dataset,xgboost,shap,,3,42,ranking,ValueError,could not convert string to float: '[3.338289E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[3.338289E3]'
+"
+New Dataset,xgboost,shap,,4,42,ranking,ValueError,could not convert string to float: '[3.056484E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[3.056484E3]'
+"
+New Dataset,xgboost,shap,,5,42,ranking,ValueError,could not convert string to float: '[2.876503E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[2.876503E3]'
+"
+New Dataset,xgboost,shap,,1,123,ranking,ValueError,could not convert string to float: '[3.115128E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[3.115128E3]'
+"
+New Dataset,xgboost,shap,,2,123,ranking,ValueError,could not convert string to float: '[2.65524E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[2.65524E3]'
+"
+New Dataset,xgboost,shap,,3,123,ranking,ValueError,could not convert string to float: '[3.3239358E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[3.3239358E3]'
+"
+New Dataset,xgboost,shap,,4,123,ranking,ValueError,could not convert string to float: '[3.2116702E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[3.2116702E3]'
+"
+New Dataset,xgboost,shap,,5,123,ranking,ValueError,could not convert string to float: '[3.1181465E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[3.1181465E3]'
+"
+New Dataset,xgboost,shap,,1,256,ranking,ValueError,could not convert string to float: '[2.7697297E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[2.7697297E3]'
+"
+New Dataset,xgboost,shap,,2,256,ranking,ValueError,could not convert string to float: '[2.902204E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[2.902204E3]'
+"
+New Dataset,xgboost,shap,,3,256,ranking,ValueError,could not convert string to float: '[2.9780747E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[2.9780747E3]'
+"
+New Dataset,xgboost,shap,,4,256,ranking,ValueError,could not convert string to float: '[2.9871978E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[2.9871978E3]'
+"
+New Dataset,xgboost,shap,,5,256,ranking,ValueError,could not convert string to float: '[2.8497231E3]',"Traceback (most recent call last):
+  File ""/home/milmoh/feature_selection/experiment1new.py"", line 248, in _run_job
+    ranking, ranking_scores = strategy_rank_with_scores(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 192, in strategy_rank_with_scores
+    scores = score_shap(
+             ^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/src/feature_selection.py"", line 135, in score_shap
+    explainer = shap.TreeExplainer(model, data=X_sample, feature_perturbation=""interventional"")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 278, in __init__
+    self.model = TreeEnsemble(model, self.data, self.data_missing, model_output)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1279, in __init__
+    self._set_xgboost_model_attributes(
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 1506, in _set_xgboost_model_attributes
+    loader = XGBTreeModelLoader(self.original_model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/milmoh/feature_selection/venv/lib/python3.12/site-packages/shap/explainers/_tree.py"", line 2104, in __init__
+    self.base_score = float(learner_model_param[""base_score""])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '[2.8497231E3]'
+"

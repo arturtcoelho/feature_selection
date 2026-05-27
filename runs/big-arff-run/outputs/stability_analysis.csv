@@ -1,0 +1,25 @@
+dataset,strategy,k_pct,mean_jaccard_to_majority
+New Dataset,mi,0.05,0.7642857142857142
+New Dataset,mi,0.1,0.7271062271062271
+New Dataset,mi,0.15,0.638252086078173
+New Dataset,mi,0.25,0.6127681800127621
+New Dataset,mi,0.5,0.674446291474404
+New Dataset,mi,1.0,1.0
+New Dataset,rfe,0.05,0.37169312169312163
+New Dataset,rfe,0.1,0.36274150685915385
+New Dataset,rfe,0.15,0.3989720424503032
+New Dataset,rfe,0.25,0.4665383532180558
+New Dataset,rfe,0.5,0.5696759065511466
+New Dataset,rfe,1.0,1.0
+New Dataset,shap,0.05,0.09523809523809522
+New Dataset,shap,0.1,0.09523809523809526
+New Dataset,shap,0.15,0.16265135830353217
+New Dataset,shap,0.25,0.36372612568893753
+New Dataset,shap,0.5,0.6998692826190863
+New Dataset,shap,1.0,1.0
+New Dataset,tree,0.05,0.7481481481481482
+New Dataset,tree,0.1,0.5885164835164836
+New Dataset,tree,0.15,0.611191103582408
+New Dataset,tree,0.25,0.6684924137555719
+New Dataset,tree,0.5,0.8194030749693493
+New Dataset,tree,1.0,1.0
