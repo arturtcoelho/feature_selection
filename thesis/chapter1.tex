@@ -1,12 +1,12 @@
 \chapter{Introduction}
 
-Machine learning has transformed how organizations extract value from data, enabling predictive models that automate decisions in domains ranging from financial risk assessment to industrial process optimization. Among the many tasks addressed by machine learning, regression---the prediction of continuous outcomes---remains fundamental. Whether estimating insurance claim costs, forecasting energy demand, or predicting material properties, regression models serve as the backbone of quantitative decision support systems.
+Machine learning has transformed how organizations extract value from data, enabling predictive models that automate decisions in domains ranging from financial risk assessment to industrial process optimization. Among the many tasks addressed by machine learning, regression (the prediction of continuous outcomes) remains fundamental. Whether estimating insurance claim costs, forecasting energy demand, or predicting material properties, regression models serve as the backbone of quantitative decision support systems.
 
 As datasets grow in both volume and dimensionality, practitioners face an increasingly common challenge: determining which input variables actually contribute to accurate predictions. High-dimensional datasets may contain hundreds or thousands of features, yet only a subset typically carries meaningful predictive signal. The remaining features introduce noise, increase computational burden, and complicate model interpretation. Feature selection addresses this challenge by identifying and retaining only the most informative variables before or during model training.
 
 \section{Context and Motivation}
 
-The importance of feature selection extends beyond mere dimensionality reduction. Effective selection can improve generalization by reducing overfitting, decrease training and inference time, lower storage requirements, and---perhaps most valuable in practice---produce models that are easier to explain and maintain. In regulated industries or high-stakes applications, the ability to articulate why a model uses specific inputs is often as important as the accuracy of its predictions.
+The importance of feature selection extends beyond mere dimensionality reduction. Effective selection can improve generalization by reducing overfitting, decrease training and inference time, lower storage requirements, and, especially when applied alongside model explanation strategies, produce models that are easier to explain and maintain. In regulated industries or high-stakes applications, the ability to articulate why a model uses specific inputs is often as important as the accuracy of its predictions.
 
 Traditional feature selection methods fall into three categories: filter methods that rank features by statistical criteria independently of the model, wrapper methods that evaluate subsets through iterative model training, and embedded methods where selection occurs as part of the learning algorithm itself. Each approach involves trade-offs between computational cost, model dependency, and theoretical guarantees.
 
@@ -14,7 +14,7 @@ In recent years, model interpretability tools have gained prominence, with SHAP 
 
 \section{Problem Statement}
 
-Despite SHAP's widespread adoption for model interpretation, its effectiveness as a feature selection mechanism remains underexplored in systematic comparisons. Existing literature often showcases SHAP in explanatory contexts without rigorous benchmarking against traditional selectors across diverse datasets and model families. Furthermore, SHAP computation---even with efficient implementations like TreeExplainer---incurs non-trivial runtime costs that may not be justified if simpler methods achieve comparable results.
+Despite SHAP's widespread adoption for model interpretation, its effectiveness as a feature selection mechanism remains underexplored in systematic comparisons. Some recent work has questioned whether SHAP importance rankings translate reliably into effective feature subsets. Existing literature often showcases SHAP in explanatory contexts without rigorous benchmarking against traditional selectors across diverse datasets and model families. Furthermore, SHAP computation, even with efficient implementations like TreeExplainer, incurs non-trivial runtime costs that may not be justified if simpler methods achieve comparable results.
 
 This gap creates uncertainty for practitioners who must choose feature selection strategies under real-world constraints. Without clear evidence on when SHAP-based selection provides meaningful benefits, organizations risk either underutilizing a powerful tool or investing computational resources in approaches that offer little marginal advantage.
 
@@ -29,8 +29,8 @@ This thesis aims to evaluate SHAP-based feature selection for tabular regression
 \begin{enumerate}
     \item Conduct a broad benchmark comparing mutual information, recursive feature elimination, tree-based importance, and SHAP-based selection across four datasets and three model types.
     \item Quantify the trade-offs between prediction error reduction and execution time for each strategy under varying feature retention levels.
-    \item Measure selection stability---the consistency of chosen feature subsets across repeated experimental runs---to assess method robustness.
-    \item Perform a focused evaluation using XGBoost on selected datasets, testing custom SHAP recursive elimination and hybrid strategies.
+    \item Measure selection stability, meaning the consistency of chosen feature subsets across repeated experimental runs, to assess method robustness.
+    \item Perform a focused evaluation using the best-performing model from the broad benchmark, testing custom SHAP recursive elimination and hybrid strategies.
     \item Synthesize practical recommendations for choosing feature selection methods in applied regression projects.
 \end{enumerate}
 

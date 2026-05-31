@@ -22,8 +22,8 @@
 \renewcommand{\contentsname}{Table of Contents}
 \doublespacing
 
-\title{Feature Selection for Regression: A Comparative Analysis with Emphasis on SHAP}
-\author{Master's Student}
+\title{A Comparative Analysis on Feature Selection for Regression Models: Comparing SHAP-Based Methods with Traditional Approaches}
+\author{Artur Temporal Coelho}
 \date{2026}
 
 \begin{document}
@@ -33,7 +33,7 @@
         \vspace*{1cm}
 
         \Huge
-        \textbf{Feature Selection for Regression: A Comparative Analysis with Emphasis on SHAP}\\
+        \textbf{A Comparative Analysis on Feature Selection for Regression Models: Comparing SHAP-Based Methods with Traditional Approaches}\\
 
         \vspace{0.5cm}
 
@@ -43,22 +43,22 @@
         \vspace{3cm}
 
         \textbf{Student:}\\
-        Master's Student\\
+        Artur Temporal Coelho\\
 
         \vspace{0.5cm}
 
         \textbf{Supervisor:}\\
-        Supervisor\\
+        Jesús Javier Rodríguez Sala\\
 
         \vspace{1cm}
 
         \textbf{Institution:}\\
-        University\\
+        Universidad Miguel Hernandez\\
 
         \vspace{0.5cm}
 
         \textbf{Program:}\\
-        Master's Program in Data Science
+        Máster Universitario en Estadística Computacional y Ciencia de Datos para la Toma de Decisiones
 
         \vfill
 
@@ -75,7 +75,6 @@
 \textbf{Acknowledgements}
 \end{center}
 
-I would like to thank my supervisor for the continuous guidance throughout this project, and my family and friends for their support during the development of this thesis.
 
 \newpage
 
@@ -84,13 +83,11 @@ I would like to thank my supervisor for the continuous guidance throughout this 
 \textbf{Abstract}
 \end{center}
 
-Feature selection is a fundamental preprocessing step in machine learning that can improve model generalization, reduce computational cost, and enhance interpretability. While SHAP (SHapley Additive exPlanations) has gained widespread adoption for model explanation, its utility as a feature selection criterion remains underexplored in systematic comparisons.
+This thesis evaluates SHAP-based feature selection for tabular regression against established methods including mutual information, recursive feature elimination, and tree-based importance. The study uses a two-stage protocol: broad screening across four datasets and three model families, followed by focused evaluation with custom SHAP recursive elimination and hybrid strategies.
 
-This thesis evaluates SHAP-based feature selection for tabular regression, comparing it against established alternatives including mutual information, recursive feature elimination, and native tree-based importance. The evaluation follows a two-stage protocol: a broad screening benchmark across four datasets (Allstate Claims Severity, Bike Sharing, Communities and Crime, and Superconductor) and three model families (Ridge, ExtraTrees, and XGBoost), followed by a focused deep dive using XGBoost on two selected datasets with custom SHAP recursive elimination and hybrid strategies.
+Results show that SHAP-based selection achieves competitive but not superior performance. In the broad benchmark, SHAP wins in only 2 of 12 dataset-model configurations. Hybrid strategies add complexity without corresponding accuracy gains.
 
-Results indicate that SHAP-based selection can achieve competitive predictive performance, occasionally obtaining the best RMSE at intermediate feature retention levels. However, these gains are neither systematic nor substantial. In the broad benchmark, SHAP wins in only 2 of 12 dataset-model configurations, both with XGBoost. In the focused evaluation, SHAP-based methods produce marginal improvements (typically less than 1\% relative) while hybrid strategies incur 20-30 times higher computational cost with no accuracy benefit.
-
-The central conclusion is that SHAP represents a useful but expensive option for feature selection: a slight performance edge in select contexts, at the cost of increased runtime and---in some settings---reduced selection stability. For practitioners working under computational constraints, simpler methods such as mutual information or native importance remain the pragmatic default. SHAP's primary value continues to lie in its explanatory power rather than as a feature selection criterion.
+The conclusion is that SHAP remains primarily valuable for model explanation rather than feature selection. Under computational constraints, simpler methods such as mutual information remain the pragmatic default.
 
 \vspace{0.5cm}
 

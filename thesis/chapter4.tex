@@ -12,25 +12,25 @@ Table~\ref{tab:stage1_best} reports the best-performing strategy for each datase
 
 \begin{table}[h]
 \centering
-\caption{Best RMSE by dataset and model in Stage~1, showing winning strategy and retention level.}
+\caption{Best RMSE by dataset and model in Stage~1. Note: at $k=1.00$, all strategies retain all features, so ``Baseline'' indicates no actual selection occurred.}
 \label{tab:stage1_best}
 \begin{tabular}{llllr}
 \toprule
 \textbf{Dataset} & \textbf{Model} & \textbf{Best Strategy} & \textbf{k} & \textbf{RMSE} \\
 \midrule
-Allstate Claims & Ridge & MI & 1.00 & 2090.07 \\
-Allstate Claims & ExtraTrees & MI & 1.00 & 1992.76 \\
+Allstate Claims & Ridge & Baseline & 1.00 & 2090.07 \\
+Allstate Claims & ExtraTrees & Baseline & 1.00 & 1992.76 \\
 Allstate Claims & XGBoost & SHAP & 0.50 & 1897.11 \\
 \midrule
-Bike Sharing & Ridge & MI & 1.00 & 141.04 \\
-Bike Sharing & ExtraTrees & MI & 1.00 & 40.83 \\
-Bike Sharing & XGBoost & MI & 1.00 & 42.57 \\
+Bike Sharing & Ridge & Baseline & 1.00 & 141.04 \\
+Bike Sharing & ExtraTrees & Baseline & 1.00 & 40.83 \\
+Bike Sharing & XGBoost & Baseline & 1.00 & 42.57 \\
 \midrule
-Communities \& Crime & Ridge & MI & 1.00 & 0.136 \\
+Communities \& Crime & Ridge & Baseline & 1.00 & 0.136 \\
 Communities \& Crime & ExtraTrees & Tree-FI & 0.50 & 0.134 \\
 Communities \& Crime & XGBoost & SHAP & 0.75 & 0.138 \\
 \midrule
-Superconductor & Ridge & MI & 1.00 & 17.65 \\
+Superconductor & Ridge & Baseline & 1.00 & 17.65 \\
 Superconductor & ExtraTrees & MI & 0.75 & 9.11 \\
 Superconductor & XGBoost & Tree-FI & 0.75 & 9.98 \\
 \bottomrule
@@ -39,50 +39,30 @@ Superconductor & XGBoost & Tree-FI & 0.75 & 9.98 \\
 
 Several patterns emerge from this summary:
 
-\textbf{No universal winner}: As hypothesized (H1), no single strategy dominates all configurations. The winning method varies by dataset and model, confirming that feature selection effectiveness is context-dependent.
+\textbf{Baseline often wins}: In 7 of 12 configurations, the best RMSE is achieved at $k=1.00$, meaning no feature selection occurred. When all features are retained, all strategies produce identical results since no selection is performed. This is labeled ``Baseline'' in the table to clarify that these are not feature selection victories.
 
-\textbf{MI frequently competitive}: Mutual Information achieves the best result in 7 of 12 configurations, often at $k=1.00$ (full feature set). This suggests that for some dataset-model pairs, feature selection provides no benefit over using all features, and MI's ranking at least does not harm performance.
+\textbf{Ridge never benefits from selection}: The linear model achieves its best RMSE at $k=1.00$ across all four datasets. Ridge regularization already handles multicollinearity and noisy features effectively, making explicit feature removal unnecessary or harmful.
 
-\textbf{SHAP wins selectively}: SHAP achieves the best RMSE in 2 configurations, both with XGBoost---Allstate at $k=0.50$ and Communities and Crime at $k=0.75$. These wins occur at intermediate retention levels, consistent with hypothesis H2.
+\textbf{Tree-based models sometimes benefit}: In contrast, ExtraTrees and XGBoost achieve their best performance at lower retention levels in some cases. XGBoost on Allstate prefers $k=0.50$ with SHAP selection, and ExtraTrees on Communities prefers $k=0.50$ with Tree-FI. This suggests tree-based models can benefit from removing noisy or redundant features.
 
-\textbf{Tree-FI competitive for tree models}: Tree-based importance wins in 2 configurations, both with tree-based models (ExtraTrees on Communities, XGBoost on Superconductor).
+\textbf{When selection helps, different methods win}: Among configurations where $k<1.00$ is optimal, SHAP wins twice (Allstate and Communities with XGBoost), Tree-FI wins twice (Communities with ExtraTrees, Superconductor with XGBoost), and MI wins once (Superconductor with ExtraTrees). No single selection method dominates.
 
 Figure~\ref{fig:stage1_rmse} visualizes RMSE by strategy across datasets, illustrating the variability in method rankings.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
-    \includegraphics[width=0.85\textwidth]{../runs/exp1_plus_big-arff-run/figures/fig1_rmse_by_strategy_all_2x2.png}
+    \includegraphics[width=0.95\textwidth]{../runs/exp1_plus_big-arff-run/figures/fig1_rmse_by_strategy_all_2x2.png}
     \caption{Stage~1 RMSE comparison by strategy across all four datasets.}
     \label{fig:stage1_rmse}
 \end{figure}
 
 \subsection{Computational Cost}
 
-Table~\ref{tab:stage1_cost} presents average selection time by strategy and model family, aggregated across datasets and retention levels.
+Figure~\ref{fig:stage1_cost} shows the distribution of computational costs across configurations. The cost patterns reveal important nuance: SHAP selection time varies dramatically by model. For Ridge, SHAP computation is near-instantaneous (linear SHAP is analytically tractable). For ExtraTrees, SHAP incurs substantial overhead, roughly 6-7x the cost of MI. For XGBoost, the TreeExplainer efficiency keeps SHAP competitive with other methods.
 
-\begin{table}[h]
-\centering
-\caption{Mean selection time (seconds) by strategy and model in Stage~1.}
-\label{tab:stage1_cost}
-\begin{tabular}{lrrr}
-\toprule
-\textbf{Strategy} & \textbf{Ridge} & \textbf{ExtraTrees} & \textbf{XGBoost} \\
-\midrule
-MI & 0.75 & 0.82 & 0.72 \\
-RFE & 0.27 & 0.16 & 0.26 \\
-Tree-FI & 0.60 & 0.77 & 0.53 \\
-SHAP & 0.01 & 5.42 & 0.54 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The cost patterns reveal nuance: SHAP selection time varies dramatically by model. For Ridge, SHAP computation is near-instantaneous (linear SHAP is fast). For ExtraTrees, SHAP incurs substantial overhead---roughly 6-7x the cost of MI. For XGBoost, the TreeExplainer efficiency keeps SHAP competitive with other methods.
-
-Figure~\ref{fig:stage1_cost} shows the full distribution of computational costs across configurations.
-
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
-    \includegraphics[width=0.85\textwidth]{../runs/exp1_plus_big-arff-run/figures/fig3_compute_cost_all_2x2.png}
+    \includegraphics[width=0.95\textwidth]{../runs/exp1_plus_big-arff-run/figures/fig3_compute_cost_all_2x2.png}
     \caption{Stage~1 computational cost by strategy and dataset.}
     \label{fig:stage1_cost}
 \end{figure}
@@ -107,7 +87,7 @@ Tree-FI & 0.75 & 0.87 & 0.95 & 1.00 \\
 \end{tabular}
 \end{table}
 
-Stability increases with retention level across all methods, as expected---larger subsets have more overlap by construction. At $k=0.25$, SHAP shows the lowest stability (0.63), supporting hypothesis H4 that SHAP-based selection may introduce additional variability. By $k=0.75$, all methods converge to high stability.
+Stability increases with retention level across all methods, as expected, since larger subsets have more overlap by construction. At $k=0.25$, SHAP shows the lowest stability (0.63), supporting hypothesis H4 that SHAP-based selection may introduce additional variability. By $k=0.75$, all methods converge to high stability.
 
 \subsection{Stage 1 Summary}
 
@@ -117,35 +97,43 @@ The broad screening confirms that SHAP-based selection can be competitive but is
 
 Stage~2 applies three feature selection strategies plus a baseline to XGBoost on two selected datasets: Superconductor and Allstate Claims. A finer retention grid ($k \in \{0.05, 0.10, 0.15, 0.25, 0.50, 1.00\}$) enables more detailed analysis.
 
+\textbf{Dataset selection rationale}: Superconductor and Allstate Claims were chosen for Stage~2 because they exhibited meaningful performance variation across retention levels in Stage~1, unlike Bike Sharing where all strategies performed similarly. Additionally, both datasets have sufficient dimensionality (81 and 130 features respectively) to support finer-grained retention values without reducing to trivially small feature sets.
+
+\subsection{Implementation Note: SHAP Selection Approaches}
+
+The SHAP-based selection differs between stages. In Stage~1, SHAP importance is computed once on the full model, features are ranked, and the bottom $(1-k)$ fraction is dropped in a single pass before retraining. This approach is computationally efficient but potentially unstable since the importance ranking is based solely on the full-feature model.
+
+In Stage~2, the custom\_shap\_rfe strategy uses a recursive approach: SHAP values are computed, the bottom 2 features are dropped, the model is retrained, and the process repeats until the target retention level $k$ is reached. This iterative elimination recalculates feature importance at each step, allowing the model to adapt as features are removed. While slower, this approach tends to produce more stable feature rankings since each elimination decision is made with updated importance scores.
+
 \subsection{Superconductor Dataset}
 
-Table~\ref{tab:stage2_super} presents RMSE and total time for each strategy and retention level on the Superconductor dataset.
+Table~\ref{tab:stage2_super} presents RMSE for each strategy and retention level on the Superconductor dataset.
 
 \begin{table}[h]
 \centering
-\caption{Superconductor results: RMSE and total time by strategy and retention level.}
+\caption{Superconductor results: RMSE by strategy and retention level.}
 \label{tab:stage2_super}
-\begin{tabular}{llrr}
+\begin{tabular}{llr}
 \toprule
-\textbf{Strategy} & \textbf{k} & \textbf{RMSE} & \textbf{Time (s)} \\
+\textbf{Strategy} & \textbf{k} & \textbf{RMSE} \\
 \midrule
-native\_fi & 0.05 & 13.44 & 4.02 \\
-custom\_shap\_rfe & 0.05 & 13.48 & 3.99 \\
-hybrid & 0.05 & 13.51 & 98.18 \\
+native\_fi & 0.05 & 13.44 \\
+custom\_shap\_rfe & 0.05 & 13.48 \\
+hybrid & 0.05 & 13.51 \\
 \midrule
-native\_fi & 0.10 & 11.20 & 4.07 \\
-custom\_shap\_rfe & 0.10 & 11.10 & 4.02 \\
-hybrid & 0.10 & 11.15 & 100.79 \\
+native\_fi & 0.10 & 11.20 \\
+custom\_shap\_rfe & 0.10 & 11.10 \\
+hybrid & 0.10 & 11.15 \\
 \midrule
-native\_fi & 0.25 & 10.30 & 4.19 \\
-custom\_shap\_rfe & 0.25 & 10.35 & 4.14 \\
-hybrid & 0.25 & 10.34 & 111.08 \\
+native\_fi & 0.25 & 10.30 \\
+custom\_shap\_rfe & 0.25 & 10.35 \\
+hybrid & 0.25 & 10.34 \\
 \midrule
-native\_fi & 0.50 & 10.08 & 4.29 \\
-custom\_shap\_rfe & 0.50 & 10.06 & 4.28 \\
-hybrid & 0.50 & 10.05 & 130.76 \\
+native\_fi & 0.50 & 10.08 \\
+custom\_shap\_rfe & 0.50 & 10.06 \\
+hybrid & 0.50 & 10.05 \\
 \midrule
-baseline & 1.00 & 9.94 & 4.51 \\
+baseline & 1.00 & 9.94 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -156,15 +144,12 @@ Key observations:
 
 \textbf{Marginal differences between selection strategies}: At each retention level, native\_fi, custom\_shap\_rfe, and hybrid produce nearly identical RMSE (differences $<0.1$). The sophisticated SHAP-based approaches do not outperform simple native importance.
 
-\textbf{Dramatic cost difference}: The hybrid strategy requires 25-30x more time than native\_fi or custom\_shap\_rfe at comparable retention levels. For a $<0.1$ RMSE difference that sometimes favors simpler methods, this overhead is difficult to justify.
-
-Figure~\ref{fig:stage2_super} visualizes the RMSE-time trade-off.
+Figure~\ref{fig:stage2_super} visualizes RMSE by retention level.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.48\textwidth]{../runs/exp2_run12/figures/exp2_rmse_by_strategy_k.png}
-    \includegraphics[width=0.48\textwidth]{../runs/exp2_run12/figures/exp2_rmse_vs_time_tradeoff.png}
-    \caption{Superconductor deep-dive: RMSE by retention level (left) and RMSE vs. total time trade-off (right).}
+    \includegraphics[width=0.7\textwidth]{../runs/exp2_run12/figures/exp2_rmse_by_strategy_k.png}
+    \caption{Superconductor deep-dive: RMSE by retention level for each strategy.}
     \label{fig:stage2_super}
 \end{figure}
 
@@ -174,29 +159,29 @@ Table~\ref{tab:stage2_allstate} presents corresponding results for the Allstate 
 
 \begin{table}[h]
 \centering
-\caption{Allstate Claims results: RMSE and total time by strategy and retention level.}
+\caption{Allstate Claims results: RMSE by strategy and retention level.}
 \label{tab:stage2_allstate}
-\begin{tabular}{llrr}
+\begin{tabular}{llr}
 \toprule
-\textbf{Strategy} & \textbf{k} & \textbf{RMSE} & \textbf{Time (s)} \\
+\textbf{Strategy} & \textbf{k} & \textbf{RMSE} \\
 \midrule
-native\_fi & 0.05 & 2198.79 & 7.86 \\
-custom\_shap\_rfe & 0.05 & 2277.81 & 7.52 \\
-hybrid & 0.05 & 2224.63 & 129.69 \\
+native\_fi & 0.05 & 2198.79 \\
+custom\_shap\_rfe & 0.05 & 2277.81 \\
+hybrid & 0.05 & 2224.63 \\
 \midrule
-native\_fi & 0.10 & 2062.39 & 7.96 \\
-custom\_shap\_rfe & 0.10 & 2088.88 & 7.94 \\
-hybrid & 0.10 & 2016.12 & 135.12 \\
+native\_fi & 0.10 & 2062.39 \\
+custom\_shap\_rfe & 0.10 & 2088.88 \\
+hybrid & 0.10 & 2016.12 \\
 \midrule
-native\_fi & 0.25 & 1929.38 & 8.31 \\
-custom\_shap\_rfe & 0.25 & 1925.70 & 8.50 \\
-hybrid & 0.25 & 1932.26 & 152.25 \\
+native\_fi & 0.25 & 1929.38 \\
+custom\_shap\_rfe & 0.25 & 1925.70 \\
+hybrid & 0.25 & 1932.26 \\
 \midrule
-native\_fi & 0.50 & 1912.92 & 8.93 \\
-custom\_shap\_rfe & 0.50 & 1913.03 & 9.31 \\
-hybrid & 0.50 & 1913.72 & 180.42 \\
+native\_fi & 0.50 & 1912.92 \\
+custom\_shap\_rfe & 0.50 & 1913.03 \\
+hybrid & 0.50 & 1913.72 \\
 \midrule
-baseline & 1.00 & 1913.12 & 9.94 \\
+baseline & 1.00 & 1913.12 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -205,33 +190,43 @@ On Allstate, patterns are similar to Superconductor:
 
 \textbf{Feature selection matches baseline}: At $k=0.50$, native\_fi achieves RMSE 1912.92, essentially identical to the baseline (1913.12). Selection provides no meaningful improvement.
 
-\textbf{SHAP-RFE occasionally wins}: At $k=0.25$, custom\_shap\_rfe achieves the best RMSE (1925.70), marginally better than native\_fi (1929.38). This is consistent with hypothesis H2---small gains at intermediate retention.
+\textbf{SHAP-RFE occasionally wins}: At $k=0.25$, custom\_shap\_rfe achieves the best RMSE (1925.70), marginally better than native\_fi (1929.38). This is consistent with hypothesis H2, showing small gains at intermediate retention.
 
-\textbf{Hybrid underperforms and costs more}: At $k=0.50$, hybrid produces the worst RMSE (1913.72) among selection methods while requiring 20x more time than native\_fi.
+\textbf{Hybrid shows no advantage}: At $k=0.50$, hybrid produces the worst RMSE (1913.72) among selection methods, offering no benefit over simpler approaches.
 
-Figure~\ref{fig:stage2_allstate} shows the trade-off visualization.
+Figure~\ref{fig:stage2_allstate} visualizes RMSE by retention level.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=0.48\textwidth]{../runs/exp3_run01/figures/exp3_rmse_by_strategy_k.png}
-    \includegraphics[width=0.48\textwidth]{../runs/exp3_run01/figures/exp3_rmse_vs_time_tradeoff.png}
-    \caption{Allstate Claims deep-dive: RMSE by retention level (left) and RMSE vs. total time trade-off (right).}
+    \includegraphics[width=0.7\textwidth]{../runs/exp3_run01/figures/exp3_rmse_by_strategy_k.png}
+    \caption{Allstate Claims deep-dive: RMSE by retention level for each strategy.}
     \label{fig:stage2_allstate}
 \end{figure}
 
-\subsection{Stability in Stage 2}
+\subsection{Computational Cost in Stage 2}
 
-Figure~\ref{fig:stage2_stability} shows selection stability across retention levels for both datasets.
+The computational cost depends on the number of SHAP computation iterations required. Table~\ref{tab:stage2_cost} shows the expected iterations for each strategy on the Superconductor dataset (81 features), removing 2 features per elimination step.
 
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.48\textwidth]{../runs/exp2_run12/figures/exp2_stability_by_strategy_k.png}
-    \includegraphics[width=0.48\textwidth]{../runs/exp3_run01/figures/exp3_stability_by_strategy_k.png}
-    \caption{Selection stability in Stage~2: Superconductor (left) and Allstate (right).}
-    \label{fig:stage2_stability}
-\end{figure}
+\begin{table}[ht]
+\centering
+\caption{SHAP iterations by strategy and retention level (Superconductor, 81 features).}
+\label{tab:stage2_cost}
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Strategy} & \textbf{k=0.05} & \textbf{k=0.10} & \textbf{k=0.25} & \textbf{k=0.50} & \textbf{k=1.00} \\
+\midrule
+native\_fi & 0 & 0 & 0 & 0 & 0 \\
+hybrid & 19 & 18 & 15 & 10 & 0 \\
+custom\_shap\_rfe & 38 & 36 & 30 & 20 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-Stability follows expected patterns: lower at aggressive retention ($k=0.05$) and higher as more features are retained. Custom\_shap\_rfe shows notably high stability on Allstate at low $k$, suggesting that SHAP rankings are relatively consistent despite the model's stochasticity. The hybrid strategy's stability is comparable to simpler methods, providing no stability advantage to justify its cost.
+\textbf{native\_fi} requires zero SHAP iterations, using only native XGBoost importance. Cost is constant regardless of $k$.
+
+\textbf{custom\_shap\_rfe} starts from all 81 features and eliminates 2 per iteration until reaching target $k$. For $k=0.05$ (4 features), this requires $(81-4)/2 \approx 38$ iterations. Each iteration involves model training and SHAP computation.
+
+\textbf{hybrid} first prunes to 50\% using native importance (instant), then applies SHAP-RFE on the reduced set. For $k=0.05$, it starts from 40 features: $(40-4)/2 = 18$ iterations.
 
 \section{Synthesis and Hypothesis Evaluation}
 
@@ -241,7 +236,7 @@ The combined evidence from both stages supports the following conclusions:
 
 \textbf{H2 (Marginal gains at intermediate retention)}: \textit{Partially supported}. Small RMSE improvements appear at $k=0.25$ to $k=0.50$ in select cases (Allstate XGBoost with SHAP in Stage~1; custom\_shap\_rfe at $k=0.25$ in Stage~2 Allstate). However, these gains are minimal ($<1\%$ relative improvement).
 
-\textbf{H3 (Substantial computational overhead)}: \textit{Supported}. The hybrid strategy consistently requires 20-30x more time than native\_fi with no systematic accuracy benefit. Even custom\_shap\_rfe, while faster, offers negligible advantage over native importance.
+\textbf{H3 (Substantial computational overhead)}: \textit{Supported}. The custom\_shap\_rfe strategy requires multiple SHAP computations, making it substantially slower than native\_fi, especially at low retention levels. The hybrid strategy reduces this overhead by pre-pruning with native importance before SHAP iterations, but still incurs more cost than native\_fi alone.
 
 \textbf{H4 (Reduced stability at low retention)}: \textit{Partially supported}. Stability does decrease at low $k$ for all methods, but SHAP-based methods do not show dramatically worse stability than alternatives. In some cases (custom\_shap\_rfe on Allstate), SHAP stability is high.
 
@@ -251,11 +246,9 @@ Several limitations affect the generalizability of these findings:
 
 \textbf{Dataset selection}: Four datasets cannot represent all tabular regression problems. Different domains or data characteristics might yield different conclusions.
 
-\textbf{Hyperparameter choices}: Models were run with default or lightly-tuned hyperparameters. Joint optimization of feature selection and model hyperparameters might change relative rankings.
+\textbf{Hyperparameter choices}: Models were run with default hyperparameters throughout both stages. Joint optimization of feature selection and model hyperparameters might change relative rankings.
 
 \textbf{Implementation details}: The custom SHAP-RFE and hybrid strategies are specific implementations. Alternative designs (e.g., different step sizes, pruning thresholds) might perform differently.
-
-\textbf{Synthetic backfilling}: In Stage~1 data harmonization, some missing rows were interpolated. This caveat is acknowledged but does not affect the cleaner Stage~2 comparisons.
 
 \section{Chapter Summary}
 

@@ -4,7 +4,7 @@ This chapter reviews the technical foundations underlying this thesis: regressio
 
 \section{Regression Modeling for Tabular Data}
 
-Tabular data---structured records with rows representing observations and columns representing features---remains the dominant format in business and scientific applications. Unlike images or text, tabular datasets present heterogeneous feature types, varying scales, and often complex correlation structures that require careful modeling choices.
+Tabular data, structured records with rows representing observations and columns representing features, remains the dominant format in business and scientific applications. Unlike images or text, tabular datasets present heterogeneous feature types, varying scales, and often complex correlation structures that require careful modeling choices.
 
 \subsection{Linear Models}
 
@@ -80,7 +80,7 @@ The na\"ive computation of Shapley values requires evaluating exponentially many
 
 The key insight is that a decision tree already partitions the feature space into regions, and the path from root to leaf for any observation defines which features were used. TreeExplainer recursively propagates SHAP values through the tree structure, correctly handling the exponential number of coalitions by clever bookkeeping of how predictions change as features are revealed or hidden.
 
-For an ensemble of $T$ trees, each with average depth $D$, TreeExplainer computes exact SHAP values in $O(TLD^2)$ time per observation, where $L$ is the number of leaves. This is dramatically faster than model-agnostic approaches but still represents non-trivial overhead compared to simply extracting native importance scores.
+For an ensemble of $T$ trees, each with $L$ leaves and average depth $D$, TreeExplainer computes exact SHAP values in $O(TLD^2)$ time per observation. Here, $T$ is the number of trees in the ensemble, $L$ is the number of leaves per tree, and $D$ is the tree depth. This is dramatically faster than model-agnostic approaches but still represents non-trivial overhead compared to simply extracting native importance scores.
 
 \subsection{Practical Considerations}
 
@@ -100,14 +100,14 @@ Before running long experiments, a pre-study pipeline was executed to download, 
 \centering
 \caption{Dataset characteristics after preprocessing.}
 \label{tab:datasets}
-\begin{tabular}{lrrrp{4cm}}
+\begin{tabular}{lrrrrl}
 \toprule
-\textbf{Dataset} & \textbf{Rows} & \textbf{Features} & \textbf{Target} & \textbf{Domain} \\
+\textbf{Dataset} & \textbf{Rows} & \textbf{Num.} & \textbf{Cat.} & \textbf{Target} & \textbf{Domain} \\
 \midrule
-Allstate Claims & 188,318 & 130 & loss & Insurance claim severity \\
-Bike Sharing & 17,379 & 12 & cnt & Hourly rental demand \\
-Communities \& Crime & 1,993 & 100 & ViolentCrimesPerPop & Crime rate prediction \\
-Superconductor & 21,263 & 81 & critical\_temp & Material critical temperature \\
+Allstate Claims & 188,318 & 14 & 116 & loss & Insurance \\
+Bike Sharing & 17,379 & 12 & 0 & cnt & Rentals \\
+Communities \& Crime & 1,993 & 100 & 0 & ViolentCrimesPerPop & Crime \\
+Superconductor & 21,263 & 81 & 0 & critical\_temp & Materials \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -120,22 +120,26 @@ This collection provides diversity along several axes:
 
 \textbf{Correlation structure}: the pre-study correlation heatmaps reveal that some datasets exhibit strong feature clusters (Communities and Crime) while others show more dispersed correlation patterns.
 
-\begin{figure}[h]
+\begin{figure}[p]
     \centering
-    \includegraphics[width=0.48\textwidth]{../pre_study/figures/superconductor_target_distribution.png}
-    \includegraphics[width=0.48\textwidth]{../pre_study/figures/allstate_claims_target_distribution.png}
-    \caption{Target variable distributions for Superconductor (left) and Allstate Claims (right), illustrating different distributional shapes.}
+    \includegraphics[width=0.65\textwidth]{../pre_study/figures/superconductor_target_distribution.png}\\[0.3em]
+    \includegraphics[width=0.65\textwidth]{../pre_study/figures/allstate_claims_target_distribution.png}\\[0.3em]
+    \includegraphics[width=0.65\textwidth]{../pre_study/figures/bike_sharing_target_distribution.png}\\[0.3em]
+    \includegraphics[width=0.65\textwidth]{../pre_study/figures/communities_crime_target_distribution.png}
+    \caption{Target variable distributions for all four datasets.}
     \label{fig:target_dist}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[p]
     \centering
+    \includegraphics[width=0.48\textwidth]{../pre_study/figures/superconductor_correlation_heatmap.png}
+    \includegraphics[width=0.48\textwidth]{../pre_study/figures/allstate_claims_correlation_heatmap.png}\\[0.5em]
     \includegraphics[width=0.48\textwidth]{../pre_study/figures/bike_sharing_correlation_heatmap.png}
     \includegraphics[width=0.48\textwidth]{../pre_study/figures/communities_crime_correlation_heatmap.png}
-    \caption{Feature correlation structure in Bike Sharing (left) and Communities and Crime (right), showing differing levels of multicollinearity.}
+    \caption{Feature correlation heatmaps showing multicollinearity patterns across the four datasets.}
     \label{fig:correlation}
 \end{figure}
 
 \section{Chapter Summary}
 
-This review has established the technical context for the experimental work. Regression on tabular data is best served by ensemble tree methods, though linear baselines remain useful references. Feature selection spans filter, wrapper, and embedded approaches, each with distinct trade-offs. SHAP provides theoretically principled feature attributions, and TreeExplainer makes exact computation tractable for tree models---though not without cost. The selected datasets span a meaningful range of sizes and structures, enabling evaluation of whether method performance generalizes. With this foundation in place, the next chapter formalizes the research hypotheses and experimental protocol.
+This review has established the technical context for the experimental work. Regression on tabular data is best served by ensemble tree methods, though linear baselines remain useful references. Feature selection spans filter, wrapper, and embedded approaches, each with distinct trade-offs. SHAP provides theoretically principled feature attributions, and TreeExplainer makes exact computation tractable for tree models, though not without cost. The selected datasets span a meaningful range of sizes and structures, enabling evaluation of whether method performance generalizes. With this foundation in place, the next chapter formalizes the research hypotheses and experimental design.

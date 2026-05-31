@@ -1,37 +1,5 @@
 better title
 
-author: Artur Temporal Coelho
-supervisor: Jesús Javier Rodríguez Sala
-Máster Universitario en Estadística Computacional y Ciencia de Datos para la Toma de Decisiones
-Universidad Miguel Hernandez de Elche (UMH)
-
-more consise abstract
-
-c1 intro good
-—perhaps
-most valuable in practice—produce models that are easier to explain and main-
-tain. -> Especially when applyed in conjunction to explainer strategies (or smt like that)
-
-absolutelly no long dash, use commas to separate (—perhaps most valuable in practice—), this is ai bs, also avoid words more commonly used in ai text, use normall language, no need to be verbose, no need to over write
-
-on 1.2 we can cite the 2 conflitting papers, and point out that shap may not be that good
-
-on 1.3.2 on point 4., we dont know yet that we are going to use xgboost, we need to say smt like: "focoused evaluation on the best performing model", aplliying more focoused strategies, such as ...
-
-otherwise, chap 1 is good
-
-SHAP values in O(TLD2) time per observation, where L is the number of leaves. -> what is t and d?
-
-table 2.1 got a little wonky, too much to the right, and the domain span more than one line, just centering it better should work
-also, we should point out the number of numerical and categorical variables in each
-
-fig 2.1 got too small to read, need to do one above the other, here we should show all 4 distributions
-fig 2.2 got in between the text, the formating is weird here, we also should show all 4 distributions, we might want to regenerate this images without legend, cause it stays too small, and generate a bigger title, or just force bigger texto to display
-
-on 3.3.1, point out we repeat the experiment 5x, besides the 10 kfolds to test stability
-
-when proposing the deep dive on 3.3.2, we still dont know what model and datasets we will use, we will say that we will give a objective selection criteria given the results of experiment 1
-
 on Table 4.1 we have something really interesting, that we need to point out:
 ridge is always better with k=1, the same is not true with the other models, going as as preffering k=0.5 in some cases, both for extratrees as for xgboost
 we need to point out specifically that when k=1, there is no feature selection winner man
@@ -46,16 +14,7 @@ scrap table 4.2, the figure shows better results, specially the fact that shap c
 
 for 4.2, we can say that the datasets picked were better cause we can see an actual difference in performance at the k levels, as well as a bigger number of features to use a finer grain of k values
 
+the time comparison table for exp 2 is gone...
 the time for shap and hybrid here is completelly off, hybrid EXPERIMENT takes a lot longer cause we cant reuse the removed features, so hybrid MUST be faster than base shap, understand the implementation and recalculate, also, by the very nature of how its implemented, thers no way that higher k values take longer for both hybrid as custom shaprfe
 
-scrap the right figure for 4.3, keep the left one
-same for 4.4
-
-on chap 4.4: Synthetic backfilling, this is false
-we did not tune at all, models were default params
-
 -> we need to, at some point, id say either at 3 or 4, talk more about the specific implementations used, both in general, as well as the custom algorithms
-
-we need to diferantiate between shap at stage 1 and 2, on stage one the process is: run shap once, cut n features, retrain the model -> run shap once and drop up to 75% of features in one pass (low stability). on stage 2 its a recursive aproach: run shap, cut p step features (2), retrain, rerun shap, repeat, cutting step to step features, 2 at a time. hisgh stability
-
-chap 5 is a bit convoluted, we need to skim it a bit
