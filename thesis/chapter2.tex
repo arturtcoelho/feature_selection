@@ -32,7 +32,7 @@ Feature selection methods are conventionally categorized into three families bas
 
 \subsection{Filter Methods}
 
-Filter methods evaluate features independently of any specific model, typically using statistical measures of relevance. Mutual Information (MI) is a widely used filter criterion that captures arbitrary dependencies between a feature $X$ and target $Y$:
+Filter methods evaluate features independently of any specific model, typically using statistical measures of relevance. Mutual Information (MI)~\cite{Cover2006Elements} is a widely used filter criterion that captures arbitrary dependencies between a feature $X$ and target $Y$:
 
 \begin{equation}
 MI(X; Y) = \sum_{x,y} p(x,y) \log \frac{p(x,y)}{p(x)p(y)}
@@ -42,7 +42,7 @@ For continuous variables, MI is estimated through discretization or kernel densi
 
 \subsection{Wrapper Methods}
 
-Wrapper methods evaluate feature subsets by training the target model and measuring performance. Recursive Feature Elimination (RFE) is a prominent example: starting with all features, RFE iteratively removes the least important feature(s) according to the model's own importance scores, continuing until a desired subset size is reached. While wrapper methods account for model-specific behavior, they are computationally expensive and may overfit to the evaluation metric.
+Wrapper methods evaluate feature subsets by training the target model and measuring performance. Recursive Feature Elimination (RFE)~\cite{Guyon2002Gene} is a prominent example: starting with all features, RFE iteratively removes the least important feature(s) according to the model's own importance scores, continuing until a desired subset size is reached. While wrapper methods account for model-specific behavior, they are computationally expensive and may overfit to the evaluation metric.
 
 \subsection{Embedded Methods}
 
@@ -80,7 +80,7 @@ The na\"ive computation of Shapley values requires evaluating exponentially many
 
 The key insight is that a decision tree already partitions the feature space into regions, and the path from root to leaf for any observation defines which features were used. TreeExplainer recursively propagates SHAP values through the tree structure, correctly handling the exponential number of coalitions by clever bookkeeping of how predictions change as features are revealed or hidden.
 
-For an ensemble of $T$ trees, each with $L$ leaves and average depth $D$, TreeExplainer computes exact SHAP values in $O(TLD^2)$ time per observation. Here, $T$ is the number of trees in the ensemble, $L$ is the number of leaves per tree, and $D$ is the tree depth. This is dramatically faster than model-agnostic approaches but still represents non-trivial overhead compared to simply extracting native importance scores.
+For an ensemble of $T$ trees, each with $L$ leaves and average depth $D$, TreeExplainer computes exact SHAP values in $O(TLD^2)$ time per observation~\cite{lundberg2020local}. Here, $T$ is the number of trees in the ensemble, $L$ is the number of leaves per tree, and $D$ is the tree depth. This is dramatically faster than model-agnostic approaches but still represents non-trivial overhead compared to simply extracting native importance scores.
 
 \subsection{Practical Considerations}
 

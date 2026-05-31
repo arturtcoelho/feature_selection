@@ -17,6 +17,12 @@
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{float}
+
+% Reduce space before chapter titles
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-30pt}{40pt}
 
 \graphicspath{{assets/}}
 \renewcommand{\contentsname}{Table of Contents}

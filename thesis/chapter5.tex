@@ -1,9 +1,5 @@
 \chapter{Conclusions and Future Work}
 
-This chapter synthesizes findings from the experimental investigation, draws practical conclusions, and identifies directions for future work.
-
-\section{Summary of Findings}
-
 This thesis evaluated SHAP-based feature selection for tabular regression through a two-stage protocol. Stage~1 screened four selection strategies across four datasets and three model families. Stage~2 performed focused analysis of SHAP-intensive methods using XGBoost on two datasets.
 
 The central finding is that SHAP-based feature selection does not provide consistent advantages over simpler alternatives in the settings studied:
@@ -20,8 +16,8 @@ These results do not suggest SHAP is without value; it remains powerful for mode
 
 The lack of consistent SHAP advantage likely reflects:
 \begin{itemize}
-    \item \textbf{Redundancy with native importance}: For tree-based models, SHAP values and native importance often correlate strongly, so additional SHAP computation may not surface different rankings.
-    \item \textbf{Model robustness}: Modern ensemble methods are robust to irrelevant features, reducing the benefit of explicit selection.
+    \item \textbf{Redundancy with native importance}: For tree-based models, SHAP values and native importance often correlate strongly~\cite{fryer2021shapley}, so additional SHAP computation may not surface different rankings.
+    \item \textbf{Model robustness}: Modern ensemble methods~\cite{breiman2001random} are robust to irrelevant features, reducing the benefit of explicit selection.
     \item \textbf{Dataset characteristics}: The datasets studied may not exhibit conditions where fine-grained SHAP rankings matter.
 \end{itemize}
 
@@ -49,7 +45,7 @@ Based on the experimental evidence:
 
 \textbf{Broader coverage}: Evaluating on additional domains (healthcare, finance, industrial sensors) would test generalizability.
 
-\textbf{Alternative architectures}: Extending to neural tabular models (TabNet, NODE) or other boosting implementations (LightGBM, CatBoost) would assess transferability.
+\textbf{Alternative architectures}: Extending to other boosting implementations (LightGBM~\cite{ke2017lightgbm}, CatBoost~\cite{prokhorenkova2018catboost}) would assess transferability.
 
 \textbf{Joint optimization}: Nested hyperparameter tuning where selection parameters are optimized alongside model parameters could reveal missed interactions.
 

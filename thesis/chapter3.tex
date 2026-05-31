@@ -51,22 +51,22 @@ The first stage surveys the landscape of feature selection performance across mu
 
 \textbf{Models}: Three model families are evaluated:
 \begin{itemize}
-    \item Ridge regression (linear baseline)
-    \item ExtraTrees (bagging ensemble)
-    \item XGBoost (gradient boosting)
+    \item Ridge regression~\cite{hoerl1970ridge} (linear baseline)
+    \item ExtraTrees~\cite{geurts2006extremely} (bagging ensemble)
+    \item XGBoost~\cite{chen2016xgboost} (gradient boosting)
 \end{itemize}
 
 \textbf{Feature selection strategies}:
 \begin{itemize}
     \item Mutual Information (MI): filter method based on statistical dependency
-    \item Recursive Feature Elimination (RFE): wrapper method with iterative removal
-    \item Tree-based Importance (Tree-FI): embedded method using native importance
+    \item Recursive Feature Elimination (RFE)~\cite{Guyon2002Gene}: wrapper method with iterative removal
+    \item Tree-based Importance (Tree-FI)~\cite{breiman2001random}: embedded method using native importance
     \item SHAP-based Importance: ranking by mean absolute SHAP value
 \end{itemize}
 
 \textbf{Feature retention levels}: Selection is evaluated at $k \in \{0.25, 0.50, 0.75, 1.00\}$, where $k$ represents the proportion of original features retained.
 
-\textbf{Evaluation}: Each configuration is run with cross-validation to obtain robust error estimates. Metrics include RMSE (primary), MAE, and MAPE. Selection time and total execution time are recorded. To assess selection stability, each configuration is repeated 5 times with different random seeds, in addition to 10-fold cross-validation within each repetition.
+\textbf{Evaluation}: Each configuration is run with cross-validation~\cite{Stone1974CrossValidatory} to obtain robust error estimates. Metrics include RMSE (primary), MAE, and MAPE. Selection time and total execution time are recorded. To assess selection stability, each configuration is repeated 5 times with different random seeds, in addition to 10-fold cross-validation within each repetition.
 
 \subsection{Stage 2: Focused Deep Dive}
 
@@ -100,7 +100,7 @@ Assessment is structured around three axes, reflecting the thesis objective of e
 
 \textbf{Predictive effectiveness}: Root Mean Squared Error (RMSE) serves as the primary metric, supplemented by Mean Absolute Error (MAE) and Mean Absolute Percentage Error (MAPE). Lower values indicate better performance.
 
-\textbf{Selection stability}: Measured by Jaccard similarity between feature subsets selected in different cross-validation folds or repeated runs. Values range from 0 (no overlap) to 1 (identical subsets). Higher stability suggests more robust selection.
+\textbf{Selection stability}: Measured by Jaccard similarity~\cite{Nogueira2018Stability} between feature subsets selected in different cross-validation folds or repeated runs. Values range from 0 (no overlap) to 1 (identical subsets). Higher stability suggests more robust selection.
 
 \textbf{Computational cost}: Measured by selection time (time spent on feature selection) and total execution time (selection plus model training and evaluation). Costs are compared in absolute terms and as ratios between methods.
 

@@ -10,7 +10,7 @@ Stage~1 evaluated four feature selection strategies across four datasets and thr
 
 Table~\ref{tab:stage1_best} reports the best-performing strategy for each dataset-model combination, determined by minimum mean RMSE across all retention levels.
 
-\begin{table}[h]
+\begin{table}[ht!]
 \centering
 \caption{Best RMSE by dataset and model in Stage~1. Note: at $k=1.00$, all strategies retain all features, so ``Baseline'' indicates no actual selection occurred.}
 \label{tab:stage1_best}
@@ -41,11 +41,11 @@ Several patterns emerge from this summary:
 
 \textbf{Baseline often wins}: In 7 of 12 configurations, the best RMSE is achieved at $k=1.00$, meaning no feature selection occurred. When all features are retained, all strategies produce identical results since no selection is performed. This is labeled ``Baseline'' in the table to clarify that these are not feature selection victories.
 
-\textbf{Ridge never benefits from selection}: The linear model achieves its best RMSE at $k=1.00$ across all four datasets. Ridge regularization already handles multicollinearity and noisy features effectively, making explicit feature removal unnecessary or harmful.
+\textbf{Ridge never benefits from selection}: The linear model achieves its best RMSE at $k=1.00$ across all four datasets. Ridge regularization~\cite{hoerl1970ridge} already handles multicollinearity and noisy features effectively, making explicit feature removal unnecessary or harmful.
 
 \textbf{Tree-based models sometimes benefit}: In contrast, ExtraTrees and XGBoost achieve their best performance at lower retention levels in some cases. XGBoost on Allstate prefers $k=0.50$ with SHAP selection, and ExtraTrees on Communities prefers $k=0.50$ with Tree-FI. This suggests tree-based models can benefit from removing noisy or redundant features.
 
-\textbf{When selection helps, different methods win}: Among configurations where $k<1.00$ is optimal, SHAP wins twice (Allstate and Communities with XGBoost), Tree-FI wins twice (Communities with ExtraTrees, Superconductor with XGBoost), and MI wins once (Superconductor with ExtraTrees). No single selection method dominates.
+\textbf{When selection helps, different methods win}: Among configurations where $k<1.00$ is optimal, SHAP wins twice (Allstate and Communities with XGBoost), Tree-FI wins twice (Communities with ExtraTrees, Superconductor with XGBoost), and MI wins once (Superconductor with ExtraTrees). No single selection method dominates, consistent with the no-free-lunch principle~\cite{wolpert2002no}.
 
 Figure~\ref{fig:stage1_rmse} visualizes RMSE by strategy across datasets, illustrating the variability in method rankings.
 
@@ -58,7 +58,7 @@ Figure~\ref{fig:stage1_rmse} visualizes RMSE by strategy across datasets, illust
 
 \subsection{Computational Cost}
 
-Figure~\ref{fig:stage1_cost} shows the distribution of computational costs across configurations. The cost patterns reveal important nuance: SHAP selection time varies dramatically by model. For Ridge, SHAP computation is near-instantaneous (linear SHAP is analytically tractable). For ExtraTrees, SHAP incurs substantial overhead, roughly 6-7x the cost of MI. For XGBoost, the TreeExplainer efficiency keeps SHAP competitive with other methods.
+Figure~\ref{fig:stage1_cost} shows the distribution of computational costs across configurations. The cost patterns reveal important nuance: SHAP selection time varies dramatically by model. For Ridge, SHAP computation is near-instantaneous (linear SHAP is analytically tractable~\cite{lundberg2017unified}). For ExtraTrees, SHAP incurs substantial overhead, roughly 6-7x the cost of MI. For XGBoost, the TreeExplainer efficiency keeps SHAP competitive with other methods.
 
 \begin{figure}[ht]
     \centering
@@ -69,9 +69,9 @@ Figure~\ref{fig:stage1_cost} shows the distribution of computational costs acros
 
 \subsection{Selection Stability}
 
-Table~\ref{tab:stage1_stability} summarizes Jaccard stability scores by strategy and retention level, averaged across datasets.
+Table~\ref{tab:stage1_stability} summarizes Jaccard stability~\cite{Nogueira2018Stability} scores by strategy and retention level, averaged across datasets.
 
-\begin{table}[h]
+\begin{table}[ht!]
 \centering
 \caption{Mean Jaccard stability by strategy and retention level in Stage~1.}
 \label{tab:stage1_stability}
@@ -109,7 +109,7 @@ In Stage~2, the custom\_shap\_rfe strategy uses a recursive approach: SHAP value
 
 Table~\ref{tab:stage2_super} presents RMSE for each strategy and retention level on the Superconductor dataset.
 
-\begin{table}[h]
+\begin{table}[ht!]
 \centering
 \caption{Superconductor results: RMSE by strategy and retention level.}
 \label{tab:stage2_super}
@@ -155,9 +155,7 @@ Figure~\ref{fig:stage2_super} visualizes RMSE by retention level.
 
 \subsection{Allstate Claims Dataset}
 
-Table~\ref{tab:stage2_allstate} presents corresponding results for the Allstate dataset.
-
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \caption{Allstate Claims results: RMSE by strategy and retention level.}
 \label{tab:stage2_allstate}
@@ -186,7 +184,7 @@ baseline & 1.00 & 1913.12 \\
 \end{tabular}
 \end{table}
 
-On Allstate, patterns are similar to Superconductor:
+Table~\ref{tab:stage2_allstate} presents corresponding results for the Allstate dataset. On Allstate, patterns are similar to Superconductor:
 
 \textbf{Feature selection matches baseline}: At $k=0.50$, native\_fi achieves RMSE 1912.92, essentially identical to the baseline (1913.12). Selection provides no meaningful improvement.
 
@@ -196,7 +194,7 @@ On Allstate, patterns are similar to Superconductor:
 
 Figure~\ref{fig:stage2_allstate} visualizes RMSE by retention level.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{../runs/exp3_run01/figures/exp3_rmse_by_strategy_k.png}
     \caption{Allstate Claims deep-dive: RMSE by retention level for each strategy.}
