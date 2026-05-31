@@ -83,11 +83,11 @@
 \textbf{Abstract}
 \end{center}
 
-This thesis evaluates SHAP-based feature selection for tabular regression against established methods including mutual information, recursive feature elimination, and tree-based importance. The study uses a two-stage protocol: broad screening across four datasets and three model families, followed by focused evaluation with custom SHAP recursive elimination and hybrid strategies.
+This thesis investigates whether SHAP-based feature selection offers practical advantages over traditional methods for tabular regression. A two-stage experimental protocol compares SHAP importance against mutual information, recursive feature elimination, and tree-based importance across multiple datasets and model families.
 
-Results show that SHAP-based selection achieves competitive but not superior performance. In the broad benchmark, SHAP wins in only 2 of 12 dataset-model configurations. Hybrid strategies add complexity without corresponding accuracy gains.
+The findings indicate that SHAP-based selection is competitive but not systematically superior, while incurring additional computational cost. Hybrid strategies combining native importance with SHAP refinement do not yield meaningful improvements over simpler approaches.
 
-The conclusion is that SHAP remains primarily valuable for model explanation rather than feature selection. Under computational constraints, simpler methods such as mutual information remain the pragmatic default.
+These results suggest that SHAP remains most valuable as an explanatory tool rather than a selection criterion, and that practitioners should prefer simpler methods unless task-specific evidence justifies the overhead.
 
 \vspace{0.5cm}
 

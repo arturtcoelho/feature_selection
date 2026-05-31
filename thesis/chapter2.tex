@@ -8,7 +8,7 @@ Tabular data, structured records with rows representing observations and columns
 
 \subsection{Linear Models}
 
-Regularized linear regression, particularly Ridge regression, provides a baseline approach with well-understood properties. Ridge regression minimizes the sum of squared residuals plus an L2 penalty on coefficient magnitudes:
+Regularized linear regression, particularly Ridge regression~\cite{hoerl1970ridge}, provides a baseline approach with well-understood properties. Ridge regression minimizes the sum of squared residuals plus an L2 penalty on coefficient magnitudes:
 
 \begin{equation}
 \hat{\beta} = \arg\min_{\beta} \left( \|y - X\beta\|^2 + \lambda\|\beta\|^2 \right)
@@ -18,17 +18,17 @@ This formulation shrinks coefficients toward zero without eliminating them entir
 
 \subsection{Ensemble Tree Methods}
 
-Tree-based ensembles have become the dominant approach for tabular regression. Two architectures are particularly relevant:
+Tree-based ensembles have become the dominant approach for tabular regression~\cite{breiman2001random}. Two architectures are particularly relevant:
 
-\textbf{Bagging ensembles}, exemplified by ExtraTrees (Extremely Randomized Trees), construct multiple decision trees on bootstrap samples with additional randomization in split selection. By averaging predictions across trees, these methods reduce variance while maintaining the ability to capture nonlinear relationships and feature interactions.
+\textbf{Bagging ensembles}, exemplified by ExtraTrees (Extremely Randomized Trees)~\cite{geurts2006extremely}, construct multiple decision trees on bootstrap samples with additional randomization in split selection. By averaging predictions across trees, these methods reduce variance while maintaining the ability to capture nonlinear relationships and feature interactions.
 
-\textbf{Gradient boosting}, exemplified by XGBoost, builds trees sequentially where each tree corrects the residual errors of its predecessors. This additive training approach often achieves state-of-the-art performance on structured data, though it introduces more hyperparameters and potential for overfitting compared to bagging methods.
+\textbf{Gradient boosting}, exemplified by XGBoost~\cite{chen2016xgboost}, builds trees sequentially where each tree corrects the residual errors of its predecessors. This additive training approach often achieves state-of-the-art performance on structured data, though it introduces more hyperparameters and potential for overfitting compared to bagging methods.
 
 Both ensemble types provide native feature importance measures: for bagging ensembles, importance typically reflects how often a feature is used in splits weighted by the improvement achieved; for gradient boosting, importance can be measured by gain (total reduction in loss from splits using that feature), weight (split frequency), or cover (number of samples affected).
 
 \section{Feature Selection Strategies}
 
-Feature selection methods are conventionally categorized into three families based on their relationship with the learning algorithm.
+Feature selection methods are conventionally categorized into three families based on their relationship with the learning algorithm~\cite{guyon2003introduction}.
 
 \subsection{Filter Methods}
 
@@ -46,15 +46,15 @@ Wrapper methods evaluate feature subsets by training the target model and measur
 
 \subsection{Embedded Methods}
 
-Embedded methods perform selection as part of model training. L1-regularized regression (Lasso) is the canonical example, where the penalty term drives some coefficients exactly to zero. Tree-based models also embed implicit selection by only splitting on informative features. This thesis treats tree-based native importance as an embedded approach, though it can also serve as input to explicit subset selection.
+Embedded methods perform selection as part of model training. L1-regularized regression (Lasso)~\cite{tibshirani1996lasso} is the canonical example, where the penalty term drives some coefficients exactly to zero. Tree-based models also embed implicit selection by only splitting on informative features. This thesis treats tree-based native importance as an embedded approach, though it can also serve as input to explicit subset selection.
 
 \section{SHAP: Theory and Computation}
 
-SHAP (SHapley Additive exPlanations) provides a unified framework for feature attribution that satisfies desirable theoretical properties from cooperative game theory. Understanding SHAP requires examining both its theoretical foundations and practical computational approaches.
+SHAP (SHapley Additive exPlanations)~\cite{lundberg2017unified} provides a unified framework for feature attribution that satisfies desirable theoretical properties from cooperative game theory. Understanding SHAP requires examining both its theoretical foundations and practical computational approaches.
 
 \subsection{Shapley Values in Feature Attribution}
 
-The core idea borrows from cooperative game theory, where Shapley values fairly distribute a total payoff among players according to their marginal contributions. In the feature attribution context, features are ``players'' and the ``payoff'' is the model prediction minus a baseline (typically the expected prediction).
+The core idea borrows from cooperative game theory, where Shapley values~\cite{shapley1953value} fairly distribute a total payoff among players according to their marginal contributions. In the feature attribution context, features are ``players'' and the ``payoff'' is the model prediction minus a baseline (typically the expected prediction).
 
 For a model $f$, the Shapley value $\phi_j$ for feature $j$ is defined as:
 
@@ -64,7 +64,7 @@ For a model $f$, the Shapley value $\phi_j$ for feature $j$ is defined as:
 
 where $N$ is the set of all features, $S$ is a subset excluding feature $j$, and $f(S)$ represents the model prediction when only features in $S$ are ``present'' (with absent features marginalized out). This formula averages the marginal contribution of feature $j$ over all possible orderings in which features could be added.
 
-Shapley values uniquely satisfy four axioms:
+Shapley values uniquely satisfy four axioms~\cite{fryer2021shapley}:
 \begin{itemize}
     \item \textbf{Efficiency}: attributions sum to the difference between the prediction and baseline.
     \item \textbf{Symmetry}: features with identical contributions receive identical attributions.
@@ -76,7 +76,7 @@ For feature selection, global importance is typically computed by averaging abso
 
 \subsection{TreeExplainer: Efficient SHAP for Tree Ensembles}
 
-The na\"ive computation of Shapley values requires evaluating exponentially many feature subsets, which is intractable for high-dimensional data. TreeExplainer exploits the structure of decision trees to compute exact SHAP values in polynomial time.
+The na\"ive computation of Shapley values requires evaluating exponentially many feature subsets, which is intractable for high-dimensional data. TreeExplainer~\cite{lundberg2020local} exploits the structure of decision trees to compute exact SHAP values in polynomial time.
 
 The key insight is that a decision tree already partitions the feature space into regions, and the path from root to leaf for any observation defines which features were used. TreeExplainer recursively propagates SHAP values through the tree structure, correctly handling the exponential number of coalitions by clever bookkeeping of how predictions change as features are revealed or hidden.
 
@@ -104,10 +104,10 @@ Before running long experiments, a pre-study pipeline was executed to download, 
 \toprule
 \textbf{Dataset} & \textbf{Rows} & \textbf{Num.} & \textbf{Cat.} & \textbf{Target} & \textbf{Domain} \\
 \midrule
-Allstate Claims & 188,318 & 14 & 116 & loss & Insurance \\
-Bike Sharing & 17,379 & 12 & 0 & cnt & Rentals \\
-Communities \& Crime & 1,993 & 100 & 0 & ViolentCrimesPerPop & Crime \\
-Superconductor & 21,263 & 81 & 0 & critical\_temp & Materials \\
+Allstate Claims~\cite{gaurallstate} & 188,318 & 14 & 116 & loss & Insurance \\
+Bike Sharing~\cite{fanaee2014event} & 17,379 & 12 & 0 & cnt & Rentals \\
+Communities \& Crime~\cite{redmond2002data} & 1,993 & 100 & 0 & ViolentCrimesPerPop & Crime \\
+Superconductor~\cite{hamidieh2018superconductor} & 21,263 & 81 & 0 & critical\_temp & Materials \\
 \bottomrule
 \end{tabular}
 \end{table}

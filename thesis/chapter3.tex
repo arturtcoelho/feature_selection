@@ -25,7 +25,7 @@ Based on the literature review and preliminary analysis, the following hypothese
 
 \subsection{H1: Competitive but Non-Dominant Performance}
 
-In the broad benchmark across heterogeneous datasets and model families, SHAP-based feature selection will produce competitive prediction error compared to standard methods (mutual information, recursive feature elimination, tree-based importance), but will not be uniformly dominant. Different methods will excel on different dataset-model combinations, reflecting the no-free-lunch principle in feature selection.
+In the broad benchmark across heterogeneous datasets and model families, SHAP-based feature selection will produce competitive prediction error compared to standard methods (mutual information, recursive feature elimination, tree-based importance), but will not be uniformly dominant. Different methods will excel on different dataset-model combinations, reflecting the no-free-lunch principle~\cite{wolpert2002no} in feature selection.
 
 \subsection{H2: Marginal Gains at Intermediate Retention}
 
@@ -108,25 +108,25 @@ Comparisons are always interpreted as trade-offs. A method that achieves margina
 
 \section{Implementation Details}
 
-All experiments are implemented in Python using scikit-learn, XGBoost, and the SHAP library. This section describes the specific algorithms used for each selection strategy.
+All experiments are implemented in Python using scikit-learn~\cite{pedregosa2011scikit}, XGBoost~\cite{chen2016xgboost}, and the SHAP library~\cite{Lundblundberg2018shapergSHAP}. This section describes the specific algorithms used for each selection strategy.
 
 \subsection{Stage 1 Selection Strategies}
 
-\textbf{Mutual Information (MI)}: Features are ranked by their mutual information with the target variable, computed using scikit-learn's \texttt{mutual\_info\_regression} with default parameters. The top $k$ fraction of features by MI score are retained.
+\textbf{Mutual Information (MI)}: Features are ranked by their mutual information with the target variable, computed using scikit-learn's \texttt{mutual\_info\_regression}~\cite{guyon2003introduction} with default parameters. The top $k$ fraction of features by MI score are retained.
 
 \textbf{Recursive Feature Elimination (RFE)}: Using scikit-learn's \texttt{RFE} wrapper, features are iteratively removed based on the model's native importance until the target number of features is reached. One feature is removed per iteration.
 
 \textbf{Tree-based Importance (Tree-FI)}: For tree-based models, features are ranked by their native importance scores (impurity-based for ExtraTrees, gain-based for XGBoost). The top $k$ fraction is retained. For Ridge regression, coefficient magnitudes serve as importance proxy.
 
-\textbf{SHAP Importance}: A model is trained on all features, SHAP values are computed for the training set using TreeExplainer (for tree models) or LinearExplainer (for Ridge), and features are ranked by mean absolute SHAP value. The top $k$ fraction is retained. This is a single-pass approach: SHAP is computed once, features are dropped, and a new model is trained on the reduced set.
+\textbf{SHAP Importance}: A model is trained on all features, SHAP values are computed for the training set using TreeExplainer~\cite{lundberg2020local} (for tree models) or LinearExplainer (for Ridge), and features are ranked by mean absolute SHAP value. The top $k$ fraction is retained. This is a single-pass approach: SHAP is computed once, features are dropped, and a new model is trained on the reduced set.
 
 \subsection{Stage 2 Selection Strategies}
 
 \textbf{Native Feature Importance (native\_fi)}: Identical to Tree-FI from Stage 1, using XGBoost's gain-based importance.
 
-\textbf{Custom SHAP-RFE (custom\_shap\_rfe)}: A recursive elimination process where at each iteration: (1) the model is trained on current features, (2) SHAP values are computed, (3) the 2 features with lowest mean absolute SHAP are removed, (4) the process repeats until target retention $k$ is reached. This recalculates importance at each step, allowing the model to adapt as features are removed.
+\textbf{Custom SHAP-RFE (custom\_shap\_rfe)}: A recursive elimination process where at each iteration: (1) the model is trained on current features, (2) SHAP values are computed, (3) the 2 features with lowest mean absolute SHAP are removed, (4) the process repeats until target retention $k$ is reached. This recalculates importance at each step, allowing the model to adapt as features are removed. This approach is conceptually similar to the SHAP-Select method proposed by Kraev et al.~\cite{kraev2024shap}, which also uses iterative SHAP-based elimination to identify relevant features. Our implementation differs in the elimination step size and stopping criteria, but shares the core principle of recalculating SHAP importance after each removal to capture changing feature interactions.
 
-\textbf{Hybrid (hybrid\_fi\_custom\_shap\_rfe)}: A two-phase approach. First, native feature importance is used to quickly prune to 50\% of features. Then, custom\_shap\_rfe is applied to the reduced feature set to reach the final target retention. This reduces SHAP computation cost by operating on fewer features.
+\textbf{Hybrid (hybrid\_fi\_custom\_shap\_rfe)}: A two-phase approach that extends the SHAP-RFE concept with a computational optimization. First, native feature importance is used to quickly prune to 50\% of features, removing obviously irrelevant variables without SHAP overhead. Then, custom\_shap\_rfe is applied to the reduced feature set to reach the final target retention. This design tests whether combining fast initial filtering with precise SHAP-based refinement can achieve better cost-effectiveness than pure SHAP-RFE.
 
 \subsection{Computational Cost Implications}
 
