@@ -1,0 +1,241 @@
+dataset,model,k_pct,comparison,statistic,p_value,p_value_corrected,significant
+Allstate Claims Severity,extratrees,0.25,mi_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,extratrees,0.25,rfe_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,extratrees,0.25,tree_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,extratrees,0.25,shap_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,extratrees,0.25,shap_vs_tree,1.0,0.0001220703125,0.00028722426470588236,True
+Allstate Claims Severity,extratrees,0.5,mi_vs_baseline100,3.0,0.00030517578125,0.0006975446428571429,True
+Allstate Claims Severity,extratrees,0.5,rfe_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,extratrees,0.5,tree_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,extratrees,0.5,shap_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,extratrees,0.5,shap_vs_tree,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,extratrees,0.75,mi_vs_baseline100,35.0,0.1688232421875,0.2813720703125,False
+Allstate Claims Severity,extratrees,0.75,rfe_vs_baseline100,16.0,0.01025390625,0.02085540254237288,True
+Allstate Claims Severity,extratrees,0.75,tree_vs_baseline100,37.0,0.207763671875,0.3280479029605263,False
+Allstate Claims Severity,extratrees,0.75,shap_vs_baseline100,42.0,0.33026123046875,0.495391845703125,False
+Allstate Claims Severity,extratrees,0.75,shap_vs_tree,56.0,0.846923828125,1.0,False
+Allstate Claims Severity,extratrees,1.0,mi_vs_baseline100,0.0,0.17971249487899976,0.2974551639376548,False
+Allstate Claims Severity,extratrees,1.0,rfe_vs_baseline100,0.0,0.31731050786291415,0.4850606489624165,False
+Allstate Claims Severity,extratrees,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,extratrees,1.0,shap_vs_baseline100,1.5,0.4142161782425252,0.6061700169402808,False
+Allstate Claims Severity,extratrees,1.0,shap_vs_tree,1.5,0.4142161782425252,0.6061700169402808,False
+Allstate Claims Severity,ridge,0.25,mi_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,ridge,0.25,rfe_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,ridge,0.25,tree_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,ridge,0.25,shap_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,ridge,0.25,shap_vs_tree,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,ridge,0.5,mi_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,ridge,0.5,rfe_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,ridge,0.5,tree_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,ridge,0.5,shap_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,ridge,0.5,shap_vs_tree,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,ridge,0.75,mi_vs_baseline100,56.0,0.846923828125,1.0,False
+Allstate Claims Severity,ridge,0.75,rfe_vs_baseline100,36.0,0.1876220703125,0.30425200591216217,False
+Allstate Claims Severity,ridge,0.75,tree_vs_baseline100,36.0,0.1876220703125,0.30425200591216217,False
+Allstate Claims Severity,ridge,0.75,shap_vs_baseline100,41.0,0.30279541015625,0.4658390925480769,False
+Allstate Claims Severity,ridge,0.75,shap_vs_tree,57.0,0.890380859375,1.0,False
+Allstate Claims Severity,ridge,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,ridge,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,ridge,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,ridge,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,ridge,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Allstate Claims Severity,xgboost,0.25,mi_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,xgboost,0.25,rfe_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,xgboost,0.25,tree_vs_baseline100,0.0,6.103515625e-05,0.00015101481958762887,True
+Allstate Claims Severity,xgboost,0.25,shap_vs_baseline100,22.0,0.0301513671875,0.05883193597560976,False
+Allstate Claims Severity,xgboost,0.25,shap_vs_tree,32.0,0.12054443359375,0.21010391340765816,False
+Allstate Claims Severity,xgboost,0.5,mi_vs_baseline100,4.0,0.00042724609375,0.0009673496462264151,True
+Allstate Claims Severity,xgboost,0.5,rfe_vs_baseline100,1.0,0.0001220703125,0.00028722426470588236,True
+Allstate Claims Severity,xgboost,0.5,tree_vs_baseline100,21.0,0.02557373046875,0.050724754648760334,False
+Allstate Claims Severity,xgboost,0.5,shap_vs_baseline100,37.0,0.207763671875,0.3280479029605263,False
+Allstate Claims Severity,xgboost,0.5,shap_vs_tree,32.0,0.12054443359375,0.21010391340765816,False
+Allstate Claims Severity,xgboost,0.75,mi_vs_baseline100,60.0,1.0,1.0,False
+Allstate Claims Severity,xgboost,0.75,rfe_vs_baseline100,47.0,0.48870849609375,0.702335563248503,False
+Allstate Claims Severity,xgboost,0.75,tree_vs_baseline100,33.0,0.1353759765625,0.23207310267857142,False
+Allstate Claims Severity,xgboost,0.75,shap_vs_baseline100,56.0,0.846923828125,1.0,False
+Allstate Claims Severity,xgboost,0.75,shap_vs_tree,46.0,0.45428466796875,0.6567971103162651,False
+Allstate Claims Severity,xgboost,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,xgboost,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,xgboost,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,xgboost,1.0,shap_vs_baseline100,35.0,0.1688232421875,0.2813720703125,False
+Allstate Claims Severity,xgboost,1.0,shap_vs_tree,35.0,0.1688232421875,0.2813720703125,False
+Bike Sharing,extratrees,0.25,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.25,rfe_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.25,tree_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.25,shap_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.25,shap_vs_tree,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.5,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.5,rfe_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.5,tree_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.5,shap_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.5,shap_vs_tree,631.0,0.9542249738357711,1.0,False
+Bike Sharing,extratrees,0.75,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.75,rfe_vs_baseline100,3.0,8.881784197001252e-15,4.844609562000683e-14,True
+Bike Sharing,extratrees,0.75,tree_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,extratrees,0.75,shap_vs_baseline100,1.0,3.552713678800501e-15,2.079637275395415e-14,True
+Bike Sharing,extratrees,0.75,shap_vs_tree,557.0,0.44326672141018975,0.6447515947784578,False
+Bike Sharing,extratrees,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,extratrees,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,extratrees,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,extratrees,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,extratrees,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Bike Sharing,ridge,0.25,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,ridge,0.25,rfe_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,ridge,0.25,tree_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,ridge,0.25,shap_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,ridge,0.25,shap_vs_tree,9.0,5.861977570020827e-14,3.126388037344441e-13,True
+Bike Sharing,ridge,0.5,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,ridge,0.5,rfe_vs_baseline100,57.0,1.2871659293978155e-10,5.419646018517118e-10,True
+Bike Sharing,ridge,0.5,tree_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,ridge,0.5,shap_vs_baseline100,52.0,7.151434999741468e-11,3.238385660260288e-10,True
+Bike Sharing,ridge,0.5,shap_vs_tree,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,ridge,0.75,mi_vs_baseline100,410.0,0.027545164283727885,0.05418720842700568,False
+Bike Sharing,ridge,0.75,rfe_vs_baseline100,607.0,0.7740531775538848,1.0,False
+Bike Sharing,ridge,0.75,tree_vs_baseline100,284.0,0.0004506016805585489,0.0010106953582621656,True
+Bike Sharing,ridge,0.75,shap_vs_baseline100,397.0,0.01958777690517799,0.03917555381035598,True
+Bike Sharing,ridge,0.75,shap_vs_tree,282.0,0.004739745078660004,0.009806369128262077,True
+Bike Sharing,ridge,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,ridge,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,ridge,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,ridge,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,ridge,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Bike Sharing,xgboost,0.25,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,xgboost,0.25,rfe_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,xgboost,0.25,tree_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,xgboost,0.25,shap_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,xgboost,0.25,shap_vs_tree,16.0,3.0020430585864233e-13,1.532958157576046e-12,True
+Bike Sharing,xgboost,0.5,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,xgboost,0.5,rfe_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,xgboost,0.5,tree_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,xgboost,0.5,shap_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,xgboost,0.5,shap_vs_tree,192.0,4.873923100439929e-05,0.00015101481958762887,True
+Bike Sharing,xgboost,0.75,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Bike Sharing,xgboost,0.75,rfe_vs_baseline100,1.0,3.552713678800501e-15,2.079637275395415e-14,True
+Bike Sharing,xgboost,0.75,tree_vs_baseline100,2.0,5.329070518200751e-15,3.045183153257572e-14,True
+Bike Sharing,xgboost,0.75,shap_vs_baseline100,11.0,9.769962616701378e-14,5.09737180001811e-13,True
+Bike Sharing,xgboost,0.75,shap_vs_tree,457.0,0.08226751834101265,0.15187849539879258,False
+Bike Sharing,xgboost,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,xgboost,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,xgboost,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,xgboost,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Bike Sharing,xgboost,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Communities and Crime,extratrees,0.25,mi_vs_baseline100,191.0,5.070202146129077e-06,1.7635485725666356e-05,True
+Communities and Crime,extratrees,0.25,rfe_vs_baseline100,148.0,3.486415511844143e-07,1.2872918812962991e-06,True
+Communities and Crime,extratrees,0.25,tree_vs_baseline100,476.0,0.12080975020940343,0.21010391340765816,False
+Communities and Crime,extratrees,0.25,shap_vs_baseline100,220.0,2.4281497463363166e-05,7.875080258388053e-05,True
+Communities and Crime,extratrees,0.25,shap_vs_tree,308.0,0.0011471783973160399,0.0024582394228200855,True
+Communities and Crime,extratrees,0.5,mi_vs_baseline100,305.0,0.0010251160635235124,0.0022164671643751617,True
+Communities and Crime,extratrees,0.5,rfe_vs_baseline100,292.0,0.0006207713421488847,0.0013668359827131407,True
+Communities and Crime,extratrees,0.5,tree_vs_baseline100,468.0,0.10316599771973678,0.1847749212890808,False
+Communities and Crime,extratrees,0.5,shap_vs_baseline100,623.0,0.893447016970665,1.0,False
+Communities and Crime,extratrees,0.5,shap_vs_tree,498.0,0.18125476399734453,0.29795303670796364,False
+Communities and Crime,extratrees,0.75,mi_vs_baseline100,631.0,0.9542249738357711,1.0,False
+Communities and Crime,extratrees,0.75,rfe_vs_baseline100,534.0,0.3230277659528582,0.49067508752332895,False
+Communities and Crime,extratrees,0.75,tree_vs_baseline100,570.0,0.5210251168620434,0.739917325721245,False
+Communities and Crime,extratrees,0.75,shap_vs_baseline100,588.0,0.6390094850461736,0.8864871468848652,False
+Communities and Crime,extratrees,0.75,shap_vs_tree,593.0,0.6736344940466168,0.9291510262711956,False
+Communities and Crime,extratrees,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,extratrees,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,extratrees,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,extratrees,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,extratrees,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Communities and Crime,ridge,0.25,mi_vs_baseline100,218.0,2.191284211150446e-05,7.204222064056261e-05,True
+Communities and Crime,ridge,0.25,rfe_vs_baseline100,253.0,0.00011903464815610221,0.0002856831555746453,True
+Communities and Crime,ridge,0.25,tree_vs_baseline100,340.0,0.0035436448551049438,0.007395432741088578,True
+Communities and Crime,ridge,0.25,shap_vs_baseline100,53.0,8.060396794462577e-11,3.517264055765488e-10,True
+Communities and Crime,ridge,0.25,shap_vs_tree,131.0,1.0490046520317264e-07,4.1272314178297435e-07,True
+Communities and Crime,ridge,0.5,mi_vs_baseline100,217.0,2.0810681753857807e-05,6.936893917952602e-05,True
+Communities and Crime,ridge,0.5,rfe_vs_baseline100,452.0,0.07395602411280144,0.1386675452115027,False
+Communities and Crime,ridge,0.5,tree_vs_baseline100,335.0,0.002996250182501825,0.006307895121056474,True
+Communities and Crime,ridge,0.5,shap_vs_baseline100,150.0,3.9920236538648624e-07,1.451644965041768e-06,True
+Communities and Crime,ridge,0.5,shap_vs_tree,244.0,7.861200783665367e-05,0.00019251920286527432,True
+Communities and Crime,ridge,0.75,mi_vs_baseline100,269.0,0.0002409992117797799,0.0005561520271841075,True
+Communities and Crime,ridge,0.75,rfe_vs_baseline100,462.0,0.09130577606126522,0.16601050192957312,False
+Communities and Crime,ridge,0.75,tree_vs_baseline100,245.0,8.237559280566131e-05,0.0001996984068016032,True
+Communities and Crime,ridge,0.75,shap_vs_baseline100,332.0,0.0027053239960554976,0.0057458208765780484,True
+Communities and Crime,ridge,0.75,shap_vs_tree,633.0,0.969474172425139,1.0,False
+Communities and Crime,ridge,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,ridge,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,ridge,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,ridge,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,ridge,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Communities and Crime,xgboost,0.25,mi_vs_baseline100,395.0,0.01855822259070905,0.037428348082102283,True
+Communities and Crime,xgboost,0.25,rfe_vs_baseline100,263.0,0.0001858580190070569,0.00043306722875430736,True
+Communities and Crime,xgboost,0.25,tree_vs_baseline100,296.0,0.0007261627070427323,0.0015843549971841433,True
+Communities and Crime,xgboost,0.25,shap_vs_baseline100,233.0,4.6469730756726335e-05,0.00014870313842152427,True
+Communities and Crime,xgboost,0.25,shap_vs_tree,549.0,0.3988547028530327,0.590895856078567,False
+Communities and Crime,xgboost,0.5,mi_vs_baseline100,485.0,0.14333259515310637,0.24397037472869168,False
+Communities and Crime,xgboost,0.5,rfe_vs_baseline100,289.0,0.0005510827602233093,0.0012246283560517982,True
+Communities and Crime,xgboost,0.5,tree_vs_baseline100,569.0,0.5148085516941183,0.7354407881344548,False
+Communities and Crime,xgboost,0.5,shap_vs_baseline100,455.0,0.07885790741956278,0.14671238589686098,False
+Communities and Crime,xgboost,0.5,shap_vs_tree,480.0,0.13045894629165566,0.2252528569064558,False
+Communities and Crime,xgboost,0.75,mi_vs_baseline100,584.0,0.6118509675549912,0.8537455361232436,False
+Communities and Crime,xgboost,0.75,rfe_vs_baseline100,609.0,0.7887529519630228,1.0,False
+Communities and Crime,xgboost,0.75,tree_vs_baseline100,510.0,0.22231487615329293,0.34646474205707983,False
+Communities and Crime,xgboost,0.75,shap_vs_baseline100,504.0,0.20103473802823935,0.321655580845183,False
+Communities and Crime,xgboost,0.75,shap_vs_tree,466.0,0.09908592454842413,0.17880166835805858,False
+Communities and Crime,xgboost,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,xgboost,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,xgboost,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,xgboost,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Communities and Crime,xgboost,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Superconductor,extratrees,0.25,mi_vs_baseline100,30.0,3.6148861681795097e-12,1.7011229026727104e-11,True
+Superconductor,extratrees,0.25,rfe_vs_baseline100,148.0,3.486415511844143e-07,1.2872918812962991e-06,True
+Superconductor,extratrees,0.25,tree_vs_baseline100,172.0,1.6455253124547653e-06,5.807736396899172e-06,True
+Superconductor,extratrees,0.25,shap_vs_baseline100,166.0,1.1326234101716182e-06,4.057158484196841e-06,True
+Superconductor,extratrees,0.25,shap_vs_tree,582.0,0.5984627102635613,0.8399476635278054,False
+Superconductor,extratrees,0.5,mi_vs_baseline100,53.0,8.060396794462577e-11,3.517264055765488e-10,True
+Superconductor,extratrees,0.5,rfe_vs_baseline100,432.0,0.04719429796794117,0.09061305209844704,False
+Superconductor,extratrees,0.5,tree_vs_baseline100,136.0,1.507920117660433e-07,5.837110132879094e-07,True
+Superconductor,extratrees,0.5,shap_vs_baseline100,217.0,2.0810681753857807e-05,6.936893917952602e-05,True
+Superconductor,extratrees,0.5,shap_vs_tree,509.0,0.21866240175859453,0.3429998458958346,False
+Superconductor,extratrees,0.75,mi_vs_baseline100,540.0,0.35217499509373695,0.5249813591459433,False
+Superconductor,extratrees,0.75,rfe_vs_baseline100,579.0,0.5786292137562761,0.8168883017735662,False
+Superconductor,extratrees,0.75,tree_vs_baseline100,535.0,0.32777522027848605,0.4947550494769601,False
+Superconductor,extratrees,0.75,shap_vs_baseline100,423.0,0.038081706053025854,0.07370652784456616,False
+Superconductor,extratrees,0.75,shap_vs_tree,501.0,0.19095974436218555,0.30758616541560085,False
+Superconductor,extratrees,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,extratrees,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,extratrees,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,extratrees,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,extratrees,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Superconductor,ridge,0.25,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Superconductor,ridge,0.25,rfe_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Superconductor,ridge,0.25,tree_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Superconductor,ridge,0.25,shap_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Superconductor,ridge,0.25,shap_vs_tree,448.0,0.06780369678404519,0.12813297030055784,False
+Superconductor,ridge,0.5,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Superconductor,ridge,0.5,rfe_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Superconductor,ridge,0.5,tree_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Superconductor,ridge,0.5,shap_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Superconductor,ridge,0.5,shap_vs_tree,1.0,3.552713678800501e-15,2.079637275395415e-14,True
+Superconductor,ridge,0.75,mi_vs_baseline100,1.0,3.552713678800501e-15,2.079637275395415e-14,True
+Superconductor,ridge,0.75,rfe_vs_baseline100,145.0,2.8391607465039215e-07,1.081585046287208e-06,True
+Superconductor,ridge,0.75,tree_vs_baseline100,47.0,3.863753761379485e-11,1.7832709667905314e-10,True
+Superconductor,ridge,0.75,shap_vs_baseline100,97.0,6.917133532624575e-09,2.76685341304983e-08,True
+Superconductor,ridge,0.75,shap_vs_tree,29.0,3.0890845437170356e-12,1.482760580984177e-11,True
+Superconductor,ridge,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,ridge,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,ridge,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,ridge,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,ridge,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Superconductor,xgboost,0.25,mi_vs_baseline100,1.0,3.552713678800501e-15,2.079637275395415e-14,True
+Superconductor,xgboost,0.25,rfe_vs_baseline100,19.0,5.453415496958769e-13,2.7267077484793845e-12,True
+Superconductor,xgboost,0.25,tree_vs_baseline100,57.0,1.2871659293978155e-10,5.419646018517118e-10,True
+Superconductor,xgboost,0.25,shap_vs_baseline100,83.0,1.9326371614170057e-09,7.861574893899685e-09,True
+Superconductor,xgboost,0.25,shap_vs_tree,474.0,0.11619549807268115,0.20656977435143314,False
+Superconductor,xgboost,0.5,mi_vs_baseline100,0.0,1.7763568394002505e-15,1.1842378929335004e-14,True
+Superconductor,xgboost,0.5,rfe_vs_baseline100,3.0,8.881784197001252e-15,4.844609562000683e-14,True
+Superconductor,xgboost,0.5,tree_vs_baseline100,28.0,2.6343371928305714e-12,1.2902876046517085e-11,True
+Superconductor,xgboost,0.5,shap_vs_baseline100,61.0,2.0232171493717033e-10,8.371933031882911e-10,True
+Superconductor,xgboost,0.5,shap_vs_tree,523.0,0.27372721377670217,0.4238356858477969,False
+Superconductor,xgboost,0.75,mi_vs_baseline100,356.0,0.00594215911497642,0.012189044338413169,True
+Superconductor,xgboost,0.75,rfe_vs_baseline100,213.0,1.6896629077223224e-05,5.793129969333676e-05,True
+Superconductor,xgboost,0.75,tree_vs_baseline100,459.0,0.0857934137886982,0.15717877335334024,False
+Superconductor,xgboost,0.75,shap_vs_baseline100,440.0,0.056738698656332076,0.1080737117263468,False
+Superconductor,xgboost,0.75,shap_vs_tree,600.0,0.7232586770768918,0.9918976142768803,False
+Superconductor,xgboost,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,xgboost,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,xgboost,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,xgboost,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Superconductor,xgboost,1.0,shap_vs_tree,0.0,1.0,1.0,False

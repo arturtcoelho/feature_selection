@@ -1,9 +1,79 @@
-\chapter{Conclusion and Future Development}
+\chapter{Conclusions and Future Work}
 
-\section{Conclusion}
+This final chapter synthesizes the findings from the experimental investigation, draws practical conclusions for feature selection in regression workflows, and identifies directions for extending this work.
 
-Provide the final conclusions of the project.
+\section{Summary of Findings}
 
-\section{Future Work to Be Developed}
+This thesis evaluated SHAP-based feature selection for tabular regression through a two-stage experimental protocol. The first stage screened four selection strategies across four datasets and three model families, while the second stage performed a focused analysis of SHAP-intensive methods using XGBoost on two selected datasets.
 
-Describe future improvements and possible continuation lines.
+The central finding is that SHAP-based feature selection, despite its theoretical elegance and growing popularity in the interpretability literature, does not provide consistent practical advantages over simpler alternatives in the regression settings studied here. The evidence can be summarized along three dimensions:
+
+\textbf{Predictive effectiveness}: SHAP achieved the best RMSE in only 2 of 12 dataset-model configurations in Stage~1, both with XGBoost. In Stage~2's focused comparison, custom SHAP recursive elimination occasionally outperformed native importance at intermediate retention levels, but gains were marginal---typically less than 1\% relative improvement. In many configurations, the full-feature baseline matched or exceeded all selection methods.
+
+\textbf{Computational cost}: The hybrid strategy, which combines initial pruning with SHAP-guided elimination, consistently required 20-30 times more computation than simpler alternatives without delivering corresponding accuracy gains. Even straightforward SHAP ranking incurs overhead compared to native importance, particularly for bagging ensembles where TreeExplainer is less efficient.
+
+\textbf{Selection stability}: SHAP-based methods showed somewhat lower stability at aggressive retention levels ($k=0.25$) in Stage~1. However, this pattern was not dramatic, and in Stage~2 the custom SHAP-RFE strategy demonstrated high stability on some configurations. Stability concerns do not strongly differentiate SHAP from alternatives.
+
+\section{Interpretation}
+
+These results do not suggest that SHAP is without value---it remains a powerful tool for model explanation and generating interpretable feature attributions. However, the evidence does not support treating SHAP importance as a superior feature selection criterion in general regression practice.
+
+The lack of consistent SHAP advantage may reflect several factors:
+
+\begin{itemize}
+    \item \textbf{Redundancy with native importance}: For tree-based models, SHAP values and native importance scores often correlate strongly. Both capture similar information about feature contribution, so the additional computation for SHAP may not surface truly different rankings.
+
+    \item \textbf{Model robustness}: Modern gradient boosting and ensemble methods are reasonably robust to irrelevant features. When models can internally down-weight uninformative variables, explicit selection provides diminishing returns.
+
+    \item \textbf{Dataset characteristics}: The datasets used, while diverse, may not exhibit the specific conditions where SHAP-based selection would shine---for example, settings with many features of similar importance where fine-grained ranking matters.
+\end{itemize}
+
+\section{Practical Recommendations}
+
+Based on the experimental evidence, the following guidelines are offered for practitioners approaching feature selection in tabular regression:
+
+\begin{enumerate}
+    \item \textbf{Start simple}: Begin with a full-feature baseline using a regularized or tree-based model. Many datasets do not benefit from explicit selection, and this baseline provides a reference point.
+
+    \item \textbf{Use low-cost methods first}: If selection is desired, mutual information or native importance rankings provide competitive results at minimal computational cost. These should be the default choices for initial exploration.
+
+    \item \textbf{Reserve SHAP for targeted use}: SHAP-based selection may be justified when (a) the practitioner has specific evidence that it improves performance on the task at hand, or (b) the primary goal is interpretability rather than raw accuracy, and SHAP attributions align better with domain understanding.
+
+    \item \textbf{Avoid expensive hybrids without validation}: Hybrid strategies that combine multiple selection passes do not automatically outperform simpler methods. Their complexity and cost should be justified by demonstrated gains on representative validation data.
+
+    \item \textbf{Consider the full trade-off}: Evaluation should always consider computational cost alongside accuracy. A method that achieves marginally lower RMSE but requires significantly more time may not be preferable in production or iterative development contexts.
+\end{enumerate}
+
+\section{Limitations}
+
+This thesis has several limitations that constrain the generalizability of conclusions:
+
+\begin{itemize}
+    \item \textbf{Scope}: Four datasets and three model families cannot represent the full diversity of regression problems. Results may differ on time-series data, extremely high-dimensional settings, or domains with specific structure.
+
+    \item \textbf{Hyperparameters}: Models were run with default or lightly-tuned configurations. Joint optimization of feature selection and model hyperparameters might reveal different patterns.
+
+    \item \textbf{Strategy implementations}: The custom SHAP-RFE and hybrid approaches are specific implementations. Alternative designs might perform better or worse.
+
+    \item \textbf{Metrics}: The study focused on RMSE, stability, and runtime. Other considerations---interpretability of selected features, downstream deployment constraints, or regulatory requirements---might favor different choices.
+\end{itemize}
+
+\section{Future Work}
+
+Several directions could extend and refine the findings of this thesis:
+
+\textbf{Broader dataset coverage}: Evaluating on additional domains (healthcare, finance, industrial sensors) would test whether the observed patterns generalize or are specific to the datasets studied here.
+
+\textbf{Alternative model architectures}: Extending the comparison to neural tabular models (e.g., TabNet, NODE) or other boosting implementations (LightGBM, CatBoost) would assess whether conclusions transfer across model families.
+
+\textbf{Joint optimization}: Investigating nested hyperparameter tuning where feature selection parameters are optimized alongside model hyperparameters could reveal interactions that fixed-configuration studies miss.
+
+\textbf{Cost-aware selection}: Developing adaptive strategies that trigger SHAP computation only when uncertainty about feature rankings is high might reduce overhead while preserving potential benefits.
+
+\textbf{Alternative stability definitions}: Exploring consensus-based selection mechanisms that aggregate rankings across multiple model fits could improve robustness without the expense of full SHAP computation at each iteration.
+
+\textbf{Interpretability-focused evaluation}: Extending evaluation to include human-centered metrics---how well selected features align with domain expert expectations, or how interpretable the resulting models are---would address dimensions beyond raw accuracy.
+
+\section{Closing Remarks}
+
+This thesis set out to answer a practical question: does SHAP-based feature selection justify its computational cost in tabular regression? The evidence suggests a measured answer: SHAP is a useful but expensive tool that provides at best marginal advantages over simpler alternatives in the settings studied. For practitioners working under computational or time constraints, simpler methods remain the pragmatic default. SHAP's value lies primarily in its explanatory power, not as a feature selection criterion. Future work may identify conditions where SHAP-based selection is more clearly advantageous, but until such conditions are characterized, a conservative approach is warranted.

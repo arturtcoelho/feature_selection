@@ -83,3 +83,29 @@ download from source -> preprocess -> save as csv -> report -> use on study
 
 - `figures/bike_sharing_correlation_heatmap.png`
 - `figures/bike_sharing_target_distribution.png`
+
+## Allstate Claims Severity
+
+- Source key: `allstate_claims`
+- Raw shape: `188318 x 130`
+- Processed shape: `188318 x 130`
+- Target: `loss`
+
+### Saved data
+
+- `data/raw/allstate_claims_raw.csv`
+- `data/processed/allstate_claims_processed.csv`
+
+### Tables
+
+- `tables/allstate_claims_overview.csv`
+- `tables/allstate_claims_missingness.csv`
+- `tables/allstate_claims_feature_stats.csv`
+- `tables/allstate_claims_target_stats.csv`
+- `tables/allstate_claims_correlation_matrix.csv`
+- `tables/allstate_claims_top_target_correlations.csv`
+
+### Figures
+
+- `figures/allstate_claims_correlation_heatmap.png`
+- `figures/allstate_claims_target_distribution.png`

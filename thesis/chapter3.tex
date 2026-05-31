@@ -1,96 +1,123 @@
-\chapter{Project Hypothesis and Proposed Method}
+\chapter{Research Hypotheses and Experimental Design}
 
-\section{Research Question}
+This chapter formalizes the research questions motivating this thesis and describes the experimental protocol designed to address them. The approach follows a two-stage structure: a broad screening benchmark to map general behavior, followed by a focused deep dive to test SHAP-intensive strategies under controlled conditions.
 
-This thesis investigates a practical question in applied machine learning: \textit{is SHAP-based feature selection worth its additional complexity and computational cost when compared with simpler feature-importance-based alternatives?} The comparison is made under a unified evaluation framework that jointly considers predictive quality, runtime cost, feature-set stability, and qualitative interpretability evidence.
+\section{Research Questions}
 
-The motivation is straightforward. SHAP-derived rankings are often perceived as more principled because they are connected to game-theoretic attribution, but in production settings the selection method must also be justified in terms of reproducibility and efficiency. This work treats feature selection as an engineering decision problem, not only a statistical ranking problem.
+The central inquiry of this thesis can be stated as:
 
-\section{Multi-Stage Hypothesis Structure}
+\begin{quote}
+\textit{Does SHAP-based feature selection provide practically relevant advantages over established alternatives when applied to tabular regression, considering predictive accuracy, selection stability, and computational cost jointly?}
+\end{quote}
 
-The thesis is organized around a staged hypothesis design.
+This question decomposes into several testable components:
 
-\subsection{H1: Screening hypothesis (Experiment 1)}
+\begin{enumerate}
+    \item \textbf{Effectiveness}: Do SHAP-selected feature subsets yield lower prediction error than subsets chosen by standard methods?
+    \item \textbf{Cost}: What computational overhead does SHAP-based selection incur, and does any performance gain justify this cost?
+    \item \textbf{Stability}: Are SHAP-selected subsets consistent across repeated runs, or does the method introduce additional variability?
+    \item \textbf{Generalization}: Do observed patterns hold across different datasets and model families, or are conclusions dataset-specific?
+\end{enumerate}
 
-In a broad benchmark across multiple datasets, models, and selection techniques, SHAP-based and tree-importance-based selection are expected to be among the most competitive methods. This stage is exploratory and is used to identify promising candidates for deeper analysis.
+\section{Hypotheses}
 
-\subsection{H2: Controlled performance hypothesis (Unified Experiment 2)}
+Based on the literature review and preliminary analysis, the following hypotheses guide the experimental work:
 
-When the model family and protocol are fixed, SHAP-based selection is not expected to produce consistent predictive gains over simpler feature-importance alternatives. In other words, performance parity is expected to be common.
+\subsection{H1: Competitive but Non-Dominant Performance}
 
-\subsection{H3: Computational cost hypothesis (Unified Experiment 2)}
+In the broad benchmark across heterogeneous datasets and model families, SHAP-based feature selection will produce competitive prediction error compared to standard methods (mutual information, recursive feature elimination, tree-based importance), but will not be uniformly dominant. Different methods will excel on different dataset-model combinations, reflecting the no-free-lunch principle in feature selection.
 
-Even when predictive performance is similar, SHAP-oriented pipelines are expected to incur higher computational overhead, especially in selection-heavy variants.
+\subsection{H2: Marginal Gains at Intermediate Retention}
 
-\subsection{H4: Redundant-subspace hypothesis (Deep-dive cases)}
+In focused evaluation with XGBoost, SHAP-based recursive elimination and hybrid strategies may produce small improvements at intermediate feature retention levels (e.g., $k=0.25$ to $k=0.50$). At very low retention ($k < 0.15$), aggressive pruning may harm all methods; at full retention ($k=1.0$), selection becomes irrelevant.
 
-Near-identical predictive performance can emerge from substantially different selected feature subsets. This implies that, for these datasets, multiple feature subspaces can support similar model quality.
+\subsection{H3: Substantial Computational Overhead}
 
-\section{Experimental Design Overview}
+SHAP-intensive strategies, particularly those involving iterative SHAP computation (custom SHAP-RFE, hybrid pipelines), will require substantially higher selection time than native importance or simple filter methods.
 
-The empirical design has two phases.
+\subsection{H4: Reduced Stability at Low Retention}
 
-\subsection{Phase I: Experiment 1 (broad benchmark)}
+Selection stability will decrease as the retention ratio decreases, across all methods. However, SHAP-based methods may exhibit additional instability due to the stochastic nature of tree ensembles and the sensitivity of SHAP rankings to model refitting.
 
-Experiment 1 compares three regression models (Ridge, Extra Trees, XGBoost), three datasets (Bike Sharing, Communities and Crime, Superconductor), and four feature selection techniques (mutual information, recursive feature elimination, SHAP-based ranking, and tree-based importance ranking). The goal is not final model selection, but candidate screening under heterogeneous conditions.
+\section{Experimental Design}
 
-\subsection{Phase II: Unified Experiment 2 (focused validation)}
+The experimental protocol consists of two stages designed to balance breadth and depth.
 
-A single, controlled protocol is then applied to two datasets:
+\subsection{Stage 1: Broad Screening Benchmark}
 
+The first stage surveys the landscape of feature selection performance across multiple datasets, models, and methods. This screening identifies general patterns and informs the selection of configurations for deeper analysis.
+
+\textbf{Datasets}: The four datasets described in Chapter~2 (Allstate Claims, Bike Sharing, Communities and Crime, Superconductor) span a range of sizes and dimensionalities.
+
+\textbf{Models}: Three model families are evaluated:
 \begin{itemize}
-    \item \textbf{Experiment 2A:} Superconductor dataset.
-    \item \textbf{Experiment 2B:} Allstate dataset (ARFF source with categorical support enabled).
+    \item Ridge regression (linear baseline)
+    \item ExtraTrees (bagging ensemble)
+    \item XGBoost (gradient boosting)
 \end{itemize}
 
-Although implemented as separate scripts during development, both runs represent the same experiment at the thesis level: same model family, same strategy definitions, same cross-validation/repetition logic, and same output schema.
-
-\section{Materials and Computational Setup}
-
-\subsection{Data}
-
-The thesis uses five datasets in total across phases. Experiment 1 uses Bike Sharing, Communities and Crime, and Superconductor. Unified Experiment 2 uses Superconductor (2A) and Allstate (2B), where 2B introduces high-cardinality categorical variables and a different signal-to-noise regime.
-
-\subsection{Model family}
-
-Unified Experiment 2 fixes the predictor to XGBoost to remove model-choice confounding and isolate the effect of feature selection. For Allstate, categorical handling is enabled directly in the model pipeline.
-
-\subsection{Selection strategies in Unified Experiment 2}
-
-The following strategies are compared:
-
+\textbf{Feature selection strategies}:
 \begin{itemize}
-    \item \texttt{baseline}: no feature dropping at \texttt{k=1.0}.
-    \item \texttt{native\_fi}: feature selection from native model importance ranking.
-    \item \texttt{custom\_shap\_rfe}: SHAP-guided recursive elimination loop.
-    \item \texttt{hybrid\_fi\_custom\_shap\_rfe}: FI pre-filtering followed by SHAP-guided elimination.
+    \item Mutual Information (MI): filter method based on statistical dependency
+    \item Recursive Feature Elimination (RFE): wrapper method with iterative removal
+    \item Tree-based Importance (Tree-FI): embedded method using native importance
+    \item SHAP-based Importance: ranking by mean absolute SHAP value
 \end{itemize}
 
-Retention ratios are evaluated over a grid of \texttt{k} values, allowing a cost-performance tradeoff analysis under varying feature budgets.
+\textbf{Feature retention levels}: Selection is evaluated at $k \in \{0.25, 0.50, 0.75, 1.00\}$, where $k$ represents the proportion of original features retained.
 
-\section{Evaluation Criteria}
+\textbf{Evaluation}: Each configuration is run with cross-validation to obtain robust error estimates. Metrics include RMSE (primary), MAE, and MAPE. Selection time and total execution time are recorded.
 
-Evaluation is multi-dimensional:
+\subsection{Stage 2: Focused Deep Dive}
 
+The second stage narrows focus to XGBoost---the model family showing consistently strong and operationally relevant performance in Stage~1---and tests more sophisticated SHAP-based strategies.
+
+\textbf{Datasets}: Two datasets are selected for focused analysis:
 \begin{itemize}
-    \item \textbf{Predictive quality:} RMSE, MAE, and MAPE.
-    \item \textbf{Computational efficiency:} selection, training, prediction, and total runtime.
-    \item \textbf{Stability and structural behavior:} consistency and overlap of selected feature subsets across folds and seeds.
-    \item \textbf{Interpretive evidence:} targeted case studies comparing similarly performing runs with distinct selected subsets.
+    \item Superconductor: moderate scale, dense numeric structure
+    \item Allstate Claims: large scale, high dimensional
 \end{itemize}
 
-This design prevents over-reliance on a single metric and supports a practical conclusion about methodological utility.
-
-\section{Proposed Contributions}
-
-The thesis contributes in three ways:
-
+\textbf{Selection strategies}:
 \begin{itemize}
-    \item A staged protocol that links broad benchmarking to controlled replication.
-    \item A unified Experiment 2 framing that treats cross-dataset replication as a first-class requirement.
-    \item A case-based analysis showing how feature subset identity and predictive parity can coexist, clarifying when SHAP selection is an interpretability choice rather than a pure performance choice.
+    \item \texttt{native\_fi}: XGBoost native feature importance ranking
+    \item \texttt{custom\_shap\_rfe}: recursive elimination guided by SHAP scores, removing features iteratively until the target retention is reached
+    \item \texttt{hybrid\_fi\_custom\_shap\_rfe}: initial pruning using native importance to reduce the feature set, followed by SHAP-guided recursive elimination on the reduced set
+    \item \texttt{baseline}: no selection, all features retained ($k=1.0$)
 \end{itemize}
 
-\section{Validity Considerations}
+\textbf{Feature retention levels}: A finer grid is used: $k \in \{0.05, 0.10, 0.15, 0.25, 0.50, 1.00\}$.
 
-Three boundaries should be acknowledged. First, conclusions are grounded in the studied datasets and model class, not universal across all domains. Second, practical equivalence in predictive metrics is interpreted in the context of repeated folds and seeds, not from single-run differences. Third, runtime outcomes are implementation- and hardware-sensitive, though the relative overhead patterns remain informative for engineering decisions.
+\textbf{Additional metrics}: Beyond prediction error and timing, Stage~2 tracks selection stability via Jaccard similarity between feature subsets across runs, and multicollinearity indicators in the selected subsets.
+
+\subsection{Rationale for Two-Stage Design}
+
+A direct exhaustive comparison of all methods across all datasets with fine-grained retention levels would be computationally prohibitive and produce unwieldy results. The two-stage approach serves multiple purposes:
+
+\begin{enumerate}
+    \item \textbf{Feasibility}: Stage~1 provides broad coverage with coarse granularity; Stage~2 invests computation where it matters most.
+    \item \textbf{Focus}: By narrowing to XGBoost in Stage~2, method effects are isolated from model-family effects.
+    \item \textbf{Relevance}: The hybrid and custom SHAP-RFE strategies are more computationally intensive; testing them on selected configurations ensures practical relevance of the comparison.
+\end{enumerate}
+
+\section{Evaluation Metrics}
+
+Assessment is structured around three axes, reflecting the thesis objective of evaluating practical utility:
+
+\textbf{Predictive effectiveness}: Root Mean Squared Error (RMSE) serves as the primary metric, supplemented by Mean Absolute Error (MAE) and Mean Absolute Percentage Error (MAPE). Lower values indicate better performance.
+
+\textbf{Selection stability}: Measured by Jaccard similarity between feature subsets selected in different cross-validation folds or repeated runs. Values range from 0 (no overlap) to 1 (identical subsets). Higher stability suggests more robust selection.
+
+\textbf{Computational cost}: Measured by selection time (time spent on feature selection) and total execution time (selection plus model training and evaluation). Costs are compared in absolute terms and as ratios between methods.
+
+Comparisons are always interpreted as trade-offs. A method that achieves marginally lower RMSE but requires dramatically higher computation may not be practically preferable.
+
+\section{Implementation and Reproducibility}
+
+All experiments are implemented in Python using scikit-learn, XGBoost, and the SHAP library. The experimental pipeline is modular, with separate components for data loading, feature selection, model training, evaluation, and result persistence.
+
+Cross-validation uses a fixed number of folds with reproducible random seeds. Results are saved as raw CSV files containing per-fold metrics, along with aggregated summaries. Figures are generated programmatically to ensure consistency.
+
+\section{Chapter Summary}
+
+This chapter has established the hypotheses driving the experimental work and described a two-stage protocol designed to evaluate SHAP-based feature selection systematically. The broad screening stage covers multiple datasets and models to identify general patterns, while the focused deep dive tests SHAP-intensive strategies where they are most likely to show value. Evaluation emphasizes practical trade-offs among effectiveness, stability, and cost. The next chapter presents the experimental execution and results.

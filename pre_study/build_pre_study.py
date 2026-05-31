@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from pandas import CategoricalDtype
+from scipy.io import arff
 from sklearn.datasets import fetch_openml
 
 
@@ -46,6 +47,14 @@ def _fetch(name: str, version: int | str) -> tuple[pd.DataFrame, pd.Series]:
     if isinstance(y, pd.DataFrame):
         y = y.iloc[:, 0]
     return X, y
+
+
+def _decode_arff_objects(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    for col in out.columns:
+        if pd.api.types.is_object_dtype(out[col]):
+            out[col] = out[col].apply(lambda v: v.decode("utf-8") if isinstance(v, bytes) else v)
+    return out
 
 
 def _encode_mixed_numeric(df: pd.DataFrame) -> pd.DataFrame:
@@ -103,6 +112,27 @@ def load_bike_sharing() -> DatasetBundle:
     y_proc = df.pop("cnt")
     X_proc = df
     return DatasetBundle("bike_sharing", "Bike Sharing", X, y_num, X_proc, y_proc, "cnt")
+
+
+def load_allstate_claims() -> DatasetBundle:
+    data, _ = arff.loadarff(Path(__file__).resolve().parents[1] / "dataset.arff")
+    df_raw = _decode_arff_objects(pd.DataFrame(data))
+
+    target_name = "loss"
+    y_num = pd.to_numeric(df_raw[target_name], errors="coerce")
+    X = df_raw.drop(columns=[target_name]).copy()
+
+    if "id" in X.columns:
+        X = X.drop(columns=["id"])
+
+    X_num = _encode_mixed_numeric(X)
+    df = X_num.copy()
+    df[target_name] = y_num
+    df = df.dropna()
+    y_proc = df.pop(target_name)
+    X_proc = df
+
+    return DatasetBundle("allstate_claims", "Allstate Claims Severity", X, y_num, X_proc, y_proc, target_name)
 
 
 def save_csv_snapshots(bundle: DatasetBundle) -> None:
@@ -232,7 +262,7 @@ def build_report(bundles: list[DatasetBundle], table_map: dict[str, dict[str, Pa
 
 def main() -> None:
     _ensure_dirs()
-    bundles = [load_superconductor(), load_communities_crime(), load_bike_sharing()]
+    bundles = [load_superconductor(), load_communities_crime(), load_bike_sharing(), load_allstate_claims()]
     table_map: dict[str, dict[str, Path]] = {}
     fig_map: dict[str, dict[str, Path]] = {}
 

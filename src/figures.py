@@ -12,17 +12,43 @@ def generate_figures(raw_df: pd.DataFrame, overlap_df: pd.DataFrame, out_dir: Pa
     out_dir.mkdir(parents=True, exist_ok=True)
     sns.set_theme(style="whitegrid")
 
-    _fig1(raw_df, out_dir / "fig1_mape_by_strategy.png", metric_col)
+    _fig1(raw_df, out_dir / f"fig1_{metric_col}_by_strategy_all_line.png", metric_col, layout="line")
+    _fig1(raw_df, out_dir / f"fig1_{metric_col}_by_strategy_all_2x2.png", metric_col, layout="grid")
+    for dataset in sorted(raw_df["dataset"].dropna().unique()):
+        safe = _safe_slug(str(dataset))
+        _fig1_single_dataset(raw_df, out_dir / f"fig1_{metric_col}_by_strategy_{safe}.png", metric_col, str(dataset))
     _fig1_matrix(raw_df, out_dir / "fig1b_mape_by_strategy_model_matrix.png", metric_col)
     _fig2(raw_df, out_dir / "fig2_mape_heatmap.png", metric_col)
-    _fig3(raw_df, out_dir / "fig3_compute_cost.png")
+    _fig3(raw_df, out_dir / "fig3_compute_cost_all_line.png", layout="line")
+    _fig3(raw_df, out_dir / "fig3_compute_cost_all_2x2.png", layout="grid")
+    for dataset in sorted(raw_df["dataset"].dropna().unique()):
+        safe = _safe_slug(str(dataset))
+        _fig3_single_dataset(raw_df, out_dir / f"fig3_compute_cost_{safe}.png", str(dataset))
     _fig4(raw_df, out_dir / "fig4_mape_stability.png", metric_col)
-    _fig5(overlap_df, out_dir / "fig5_shap_tree_overlap.png")
+    _fig5(overlap_df, out_dir / "fig5_shap_tree_overlap_all_line.png", layout="line")
+    _fig5(overlap_df, out_dir / "fig5_shap_tree_overlap_all_2x2.png", layout="grid")
+    for dataset in sorted(raw_df["dataset"].dropna().unique()):
+        safe = _safe_slug(str(dataset))
+        _fig5_single_dataset(overlap_df, out_dir / f"fig5_shap_tree_overlap_{safe}.png", str(dataset))
 
 
-def _fig1(raw_df: pd.DataFrame, path: Path, metric_col: str) -> None:
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5), sharey=False)
-    for ax, (dataset, df_ds) in zip(axes, raw_df.groupby("dataset"), strict=False):
+def _safe_slug(text: str) -> str:
+    slug = text.strip().lower()
+    slug = slug.replace(" ", "_")
+    return "".join(ch for ch in slug if ch.isalnum() or ch == "_")
+
+
+def _fig1(raw_df: pd.DataFrame, path: Path, metric_col: str, layout: str) -> None:
+    datasets = sorted(raw_df["dataset"].dropna().unique())
+    if layout == "grid":
+        fig, axes = plt.subplots(2, 2, figsize=(18, 10), sharey=False)
+        axes_list = list(axes.flatten())
+    else:
+        fig, axes = plt.subplots(1, len(datasets), figsize=(6 * len(datasets), 5), sharey=False)
+        axes_list = [axes] if len(datasets) == 1 else list(axes)
+
+    for ax, dataset in zip(axes_list, datasets, strict=False):
+        df_ds = raw_df[raw_df["dataset"] == dataset]
         agg = df_ds.groupby(["k_pct", "strategy"], as_index=False).agg(mean_metric=(metric_col, "mean"), std_metric=(metric_col, "std"))
         agg["k_label"] = (agg["k_pct"] * 100).astype(int).astype(str)
         sns.barplot(data=agg, x="k_label", y="mean_metric", hue="strategy", ax=ax, errorbar=None)
@@ -32,6 +58,25 @@ def _fig1(raw_df: pd.DataFrame, path: Path, metric_col: str) -> None:
         ax.set_title(dataset)
         ax.set_xlabel("k%")
         ax.set_ylabel(f"Mean {metric_col.upper()}")
+    for ax in axes_list[len(datasets) :]:
+        ax.axis("off")
+    plt.tight_layout()
+    fig.savefig(path, dpi=300)
+    plt.close(fig)
+
+
+def _fig1_single_dataset(raw_df: pd.DataFrame, path: Path, metric_col: str, dataset: str) -> None:
+    fig, ax = plt.subplots(figsize=(7, 5))
+    df_ds = raw_df[raw_df["dataset"] == dataset]
+    agg = df_ds.groupby(["k_pct", "strategy"], as_index=False).agg(mean_metric=(metric_col, "mean"), std_metric=(metric_col, "std"))
+    agg["k_label"] = (agg["k_pct"] * 100).astype(int).astype(str)
+    sns.barplot(data=agg, x="k_label", y="mean_metric", hue="strategy", ax=ax, errorbar=None)
+    for container, (_, g) in zip(ax.containers, agg.groupby("strategy"), strict=False):
+        for bar, (_, row) in zip(container, g.iterrows(), strict=False):
+            ax.errorbar(bar.get_x() + bar.get_width() / 2, row["mean_metric"], yerr=row["std_metric"], fmt="none", c="black", capsize=2)
+    ax.set_title(dataset)
+    ax.set_xlabel("k%")
+    ax.set_ylabel(f"Mean {metric_col.upper()}")
     plt.tight_layout()
     fig.savefig(path, dpi=300)
     plt.close(fig)
@@ -118,15 +163,39 @@ def _fig1_matrix(raw_df: pd.DataFrame, path: Path, metric_col: str) -> None:
     plt.close(fig)
 
 
-def _fig3(raw_df: pd.DataFrame, path: Path) -> None:
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5), sharey=True)
-    for ax, (dataset, df_ds) in zip(axes, raw_df.groupby("dataset"), strict=False):
+def _fig3(raw_df: pd.DataFrame, path: Path, layout: str) -> None:
+    datasets = sorted(raw_df["dataset"].dropna().unique())
+    if layout == "grid":
+        fig, axes = plt.subplots(2, 2, figsize=(18, 10), sharey=True)
+        axes_list = list(axes.flatten())
+    else:
+        fig, axes = plt.subplots(1, len(datasets), figsize=(6 * len(datasets), 5), sharey=True)
+        axes_list = [axes] if len(datasets) == 1 else list(axes)
+
+    for ax, dataset in zip(axes_list, datasets, strict=False):
+        df_ds = raw_df[raw_df["dataset"] == dataset]
         agg = df_ds[df_ds["k_pct"] < 1.0].groupby("strategy", as_index=False).agg(mean_selection_time_s=("selection_time_s", "mean"))
         sns.barplot(data=agg, x="strategy", y="mean_selection_time_s", ax=ax)
         ax.set_yscale("log")
         ax.set_title(dataset)
         ax.set_xlabel("Strategy")
         ax.set_ylabel("Selection Time (s, log)")
+    for ax in axes_list[len(datasets) :]:
+        ax.axis("off")
+    plt.tight_layout()
+    fig.savefig(path, dpi=300)
+    plt.close(fig)
+
+
+def _fig3_single_dataset(raw_df: pd.DataFrame, path: Path, dataset: str) -> None:
+    fig, ax = plt.subplots(figsize=(7, 5))
+    df_ds = raw_df[raw_df["dataset"] == dataset]
+    agg = df_ds[df_ds["k_pct"] < 1.0].groupby("strategy", as_index=False).agg(mean_selection_time_s=("selection_time_s", "mean"))
+    sns.barplot(data=agg, x="strategy", y="mean_selection_time_s", ax=ax)
+    ax.set_yscale("log")
+    ax.set_title(dataset)
+    ax.set_xlabel("Strategy")
+    ax.set_ylabel("Selection Time (s, log)")
     plt.tight_layout()
     fig.savefig(path, dpi=300)
     plt.close(fig)
@@ -145,10 +214,10 @@ def _fig4(raw_df: pd.DataFrame, path: Path, metric_col: str) -> None:
     plt.close(fig)
 
 
-def _fig5(overlap_df: pd.DataFrame, path: Path) -> None:
-    fig, ax = plt.subplots(figsize=(8, 5))
+def _fig5(overlap_df: pd.DataFrame, path: Path, layout: str) -> None:
     required = {"dataset", "jaccard"}
     if overlap_df.empty or not required.issubset(set(overlap_df.columns)):
+        fig, ax = plt.subplots(figsize=(8, 5))
         ax.text(0.5, 0.5, "No SHAP/Tree overlap data available", ha="center", va="center")
         ax.set_title("SHAP vs Tree Top-50% Overlap")
         ax.set_xlabel("Dataset")
@@ -156,10 +225,43 @@ def _fig5(overlap_df: pd.DataFrame, path: Path) -> None:
         ax.set_xticks([])
         ax.set_yticks([])
     else:
-        sns.boxplot(data=overlap_df, x="dataset", y="jaccard", ax=ax)
-        ax.set_title("SHAP vs Tree Top-50% Overlap")
-        ax.set_xlabel("Dataset")
-        ax.set_ylabel("Jaccard Similarity")
+        datasets = sorted(overlap_df["dataset"].dropna().unique())
+        if layout == "grid":
+            fig, axes = plt.subplots(2, 2, figsize=(18, 10), sharey=True)
+            axes_list = list(axes.flatten())
+        else:
+            fig, axes = plt.subplots(1, len(datasets), figsize=(6 * len(datasets), 5), sharey=True)
+            axes_list = [axes] if len(datasets) == 1 else list(axes)
+        for ax, dataset in zip(axes_list, datasets, strict=False):
+            d = overlap_df[overlap_df["dataset"] == dataset]
+            sns.boxplot(data=d, y="jaccard", ax=ax)
+            ax.set_title(dataset)
+            ax.set_xlabel("")
+            ax.set_ylabel("Jaccard Similarity")
+        for ax in axes_list[len(datasets) :]:
+            ax.axis("off")
+    plt.tight_layout()
+    fig.savefig(path, dpi=300)
+    plt.close(fig)
+
+
+def _fig5_single_dataset(overlap_df: pd.DataFrame, path: Path, dataset: str) -> None:
+    fig, ax = plt.subplots(figsize=(7, 5))
+    required = {"dataset", "jaccard"}
+    if overlap_df.empty or not required.issubset(set(overlap_df.columns)):
+        ax.text(0.5, 0.5, "No SHAP/Tree overlap data available", ha="center", va="center")
+        ax.set_xticks([])
+        ax.set_yticks([])
+    else:
+        d = overlap_df[overlap_df["dataset"] == dataset]
+        if d.empty:
+            ax.text(0.5, 0.5, "No SHAP/Tree overlap data available", ha="center", va="center")
+            ax.set_xticks([])
+            ax.set_yticks([])
+        else:
+            sns.boxplot(data=d, y="jaccard", ax=ax)
+    ax.set_title(dataset)
+    ax.set_ylabel("Jaccard Similarity")
     plt.tight_layout()
     fig.savefig(path, dpi=300)
     plt.close(fig)

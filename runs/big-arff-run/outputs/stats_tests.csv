@@ -1,79 +1,61 @@
 dataset,model,k_pct,comparison,statistic,p_value,p_value_corrected,significant
-New Dataset,extratrees,0.05,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.05,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.05,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.05,shap_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.05,shap_vs_tree,33.0,0.1353759765625,0.162451171875,False
-New Dataset,extratrees,0.1,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.1,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.1,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.1,shap_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.1,shap_vs_tree,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.15,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.15,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.15,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.15,shap_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.15,shap_vs_tree,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.25,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.25,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.25,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.25,shap_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.25,shap_vs_tree,1.0,0.0001220703125,0.00015608990778688526,True
-New Dataset,extratrees,0.5,mi_vs_baseline100,3.0,0.00030517578125,0.0003839308215725807,True
-New Dataset,extratrees,0.5,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.5,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.5,shap_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,0.5,shap_vs_tree,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,extratrees,1.0,mi_vs_baseline100,0.0,0.17971249487899976,0.21238749394790882,False
-New Dataset,extratrees,1.0,rfe_vs_baseline100,0.0,0.31731050786291415,0.36940626288518363,False
-New Dataset,extratrees,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
-New Dataset,extratrees,1.0,shap_vs_baseline100,1.5,0.4142161782425252,0.46824437540459374,False
-New Dataset,extratrees,1.0,shap_vs_tree,1.5,0.4142161782425252,0.46824437540459374,False
-New Dataset,ridge,0.05,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.05,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.05,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.05,shap_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.05,shap_vs_tree,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.1,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.1,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.1,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.1,shap_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.1,shap_vs_tree,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.15,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.15,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.15,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.15,shap_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.15,shap_vs_tree,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.25,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.25,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.25,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.25,shap_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.25,shap_vs_tree,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.5,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.5,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.5,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.5,shap_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,0.5,shap_vs_tree,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,ridge,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
-New Dataset,ridge,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
-New Dataset,ridge,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
-New Dataset,ridge,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
-New Dataset,ridge,1.0,shap_vs_tree,0.0,1.0,1.0,False
-New Dataset,xgboost,0.05,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.05,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.05,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.1,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.1,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.1,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.15,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.15,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.15,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.25,mi_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.25,rfe_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.25,tree_vs_baseline100,0.0,6.103515625e-05,8.069054555084746e-05,True
-New Dataset,xgboost,0.5,mi_vs_baseline100,4.0,0.00042724609375,0.0005289713541666666,True
-New Dataset,xgboost,0.5,rfe_vs_baseline100,1.0,0.0001220703125,0.00015608990778688526,True
-New Dataset,xgboost,0.5,tree_vs_baseline100,21.0,0.02557373046875,0.031167984008789062,True
-New Dataset,xgboost,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
-New Dataset,xgboost,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
-New Dataset,xgboost,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,extratrees,0.25,mi_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,extratrees,0.25,rfe_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,extratrees,0.25,tree_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,extratrees,0.25,shap_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,extratrees,0.25,shap_vs_tree,1.0,0.0001220703125,0.0003184442934782609,True
+Allstate Claims Severity,extratrees,0.5,mi_vs_baseline100,3.0,0.00030517578125,0.000732421875,True
+Allstate Claims Severity,extratrees,0.5,rfe_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,extratrees,0.5,tree_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,extratrees,0.5,shap_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,extratrees,0.5,shap_vs_tree,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,extratrees,0.75,mi_vs_baseline100,27.0,0.063720703125,0.119476318359375,False
+Allstate Claims Severity,extratrees,0.75,rfe_vs_baseline100,14.0,0.0067138671875,0.014386858258928572,True
+Allstate Claims Severity,extratrees,0.75,tree_vs_baseline100,37.0,0.207763671875,0.3280479029605263,False
+Allstate Claims Severity,extratrees,0.75,shap_vs_baseline100,20.0,0.02154541015625,0.0430908203125,True
+Allstate Claims Severity,extratrees,0.75,shap_vs_tree,34.0,0.15142822265625,0.2595912388392857,False
+Allstate Claims Severity,extratrees,1.0,mi_vs_baseline100,0.0,0.17971249487899976,0.29142566737135095,False
+Allstate Claims Severity,extratrees,1.0,rfe_vs_baseline100,0.0,0.31731050786291415,0.4759657617943712,False
+Allstate Claims Severity,extratrees,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,extratrees,1.0,shap_vs_baseline100,1.5,0.4142161782425252,0.5743685635653409,False
+Allstate Claims Severity,extratrees,1.0,shap_vs_tree,1.5,0.4142161782425252,0.5743685635653409,False
+Allstate Claims Severity,ridge,0.25,mi_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,ridge,0.25,rfe_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,ridge,0.25,tree_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,ridge,0.25,shap_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,ridge,0.25,shap_vs_tree,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,ridge,0.5,mi_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,ridge,0.5,rfe_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,ridge,0.5,tree_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,ridge,0.5,shap_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,ridge,0.5,shap_vs_tree,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,ridge,0.75,mi_vs_baseline100,43.0,0.359130859375,0.5255573551829268,False
+Allstate Claims Severity,ridge,0.75,rfe_vs_baseline100,54.0,0.76153564453125,0.972173163231383,False
+Allstate Claims Severity,ridge,0.75,tree_vs_baseline100,47.0,0.48870849609375,0.6374458644701086,False
+Allstate Claims Severity,ridge,0.75,shap_vs_baseline100,2.0,0.00018310546875,0.000457763671875,True
+Allstate Claims Severity,ridge,0.75,shap_vs_tree,20.0,0.02154541015625,0.0430908203125,True
+Allstate Claims Severity,ridge,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,ridge,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,ridge,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,ridge,1.0,shap_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,ridge,1.0,shap_vs_tree,0.0,1.0,1.0,False
+Allstate Claims Severity,xgboost,0.25,mi_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,xgboost,0.25,rfe_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,xgboost,0.25,tree_vs_baseline100,0.0,6.103515625e-05,0.00017438616071428572,True
+Allstate Claims Severity,xgboost,0.25,shap_vs_baseline100,5.0,0.0006103515625,0.0013563368055555555,True
+Allstate Claims Severity,xgboost,0.25,shap_vs_tree,40.0,0.27685546875,0.42593149038461536,False
+Allstate Claims Severity,xgboost,0.5,mi_vs_baseline100,4.0,0.00042724609375,0.0009859525240384615,True
+Allstate Claims Severity,xgboost,0.5,rfe_vs_baseline100,1.0,0.0001220703125,0.0003184442934782609,True
+Allstate Claims Severity,xgboost,0.5,tree_vs_baseline100,21.0,0.02557373046875,0.04949754284274193,True
+Allstate Claims Severity,xgboost,0.5,shap_vs_baseline100,57.0,0.890380859375,1.0,False
+Allstate Claims Severity,xgboost,0.5,shap_vs_tree,59.0,0.97796630859375,1.0,False
+Allstate Claims Severity,xgboost,0.75,mi_vs_baseline100,30.0,0.0946044921875,0.16694910386029413,False
+Allstate Claims Severity,xgboost,0.75,rfe_vs_baseline100,30.0,0.0946044921875,0.16694910386029413,False
+Allstate Claims Severity,xgboost,0.75,tree_vs_baseline100,45.0,0.42120361328125,0.5743685635653409,False
+Allstate Claims Severity,xgboost,0.75,shap_vs_baseline100,35.0,0.1688232421875,0.2813720703125,False
+Allstate Claims Severity,xgboost,0.75,shap_vs_tree,46.0,0.45428466796875,0.605712890625,False
+Allstate Claims Severity,xgboost,1.0,mi_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,xgboost,1.0,rfe_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,xgboost,1.0,tree_vs_baseline100,0.0,1.0,1.0,False
+Allstate Claims Severity,xgboost,1.0,shap_vs_baseline100,55.0,0.803955078125,0.9844347895408163,False
+Allstate Claims Severity,xgboost,1.0,shap_vs_tree,55.0,0.803955078125,0.9844347895408163,False

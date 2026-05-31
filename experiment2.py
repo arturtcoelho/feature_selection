@@ -586,6 +586,9 @@ def run_figures(pmap: dict[str, Path]) -> None:
     ax.set_title("RMSE by Strategy and k")
     ax.set_xlabel("k% features kept (descending)")
     ax.set_ylabel("Mean RMSE")
+    lg = ax.get_legend()
+    if lg is not None:
+        lg.set_loc("lower right")
     fig.tight_layout()
     fig.savefig(fig_dir / "exp2_rmse_by_strategy_k.png", dpi=300)
     plt.close(fig)
@@ -598,14 +601,35 @@ def run_figures(pmap: dict[str, Path]) -> None:
     ax.set_title("RMSE Distribution by Strategy and k")
     ax.set_xlabel("k% features kept (descending)")
     ax.set_ylabel("RMSE")
+    lg = ax.get_legend()
+    if lg is not None:
+        lg.set_loc("lower right")
     fig.tight_layout()
     fig.savefig(fig_dir / "exp2_rmse_boxplot_by_strategy_k.png", dpi=300)
     plt.close(fig)
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    t = raw[raw["k_pct"].astype(float) < 1.0].groupby("strategy", as_index=False).agg(selection=("selection_time_s", "mean"), total=("total_time_s", "mean")).melt(id_vars=["strategy"], var_name="time_type", value_name="seconds")
-    sns.barplot(data=t, x="strategy", y="seconds", hue="time_type", ax=ax)
-    ax.set_title("Execution Time by Strategy")
+    fig, ax = plt.subplots(figsize=(9, 5))
+    t = raw[raw["k_pct"].astype(float) < 1.0].copy()
+    t = t[t["strategy"].isin(["native_fi", "custom_shap_rfe", "hybrid_fi_custom_shap_rfe"])].copy()
+    t["effective_time_s"] = np.nan
+    t.loc[t["strategy"] == "hybrid_fi_custom_shap_rfe", "effective_time_s"] = t.loc[
+        t["strategy"] == "hybrid_fi_custom_shap_rfe", "total_time_s"
+    ]
+    t.loc[t["strategy"] == "native_fi", "effective_time_s"] = t.loc[t["strategy"] == "native_fi", "selection_time_s"]
+
+    shaprfe = t[t["strategy"] == "custom_shap_rfe"].copy()
+    shaprfe = shaprfe.sort_values(["repeat_seed", "fold", "k_pct"])
+    shaprfe["effective_time_s"] = shaprfe.groupby(["repeat_seed", "fold"])["selection_time_s"].cumsum()
+    t.loc[shaprfe.index, "effective_time_s"] = shaprfe["effective_time_s"]
+
+    t["k_label"] = (t["k_pct"] * 100).astype(int).astype(str)
+    sns.barplot(data=t, x="k_label", y="effective_time_s", hue="strategy", hue_order=hue_order, order=k_order, ax=ax)
+    ax.set_title("Execution Time by Strategy and k")
+    ax.set_xlabel("k% features kept (descending)")
+    ax.set_ylabel("Seconds")
+    lg = ax.get_legend()
+    if lg is not None:
+        lg.set_loc("lower right")
     fig.tight_layout()
     fig.savefig(fig_dir / "exp2_time_by_strategy.png", dpi=300)
     plt.close(fig)
@@ -620,6 +644,9 @@ def run_figures(pmap: dict[str, Path]) -> None:
             ax.set_title("Stability (Jaccard to Majority) by Strategy and k")
             ax.set_xlabel("k% features kept (descending)")
             ax.set_ylabel("Mean Jaccard")
+            lg = ax.get_legend()
+            if lg is not None:
+                lg.set_loc("lower right")
             fig.tight_layout()
             fig.savefig(fig_dir / "exp2_stability_by_strategy_k.png", dpi=300)
             plt.close(fig)

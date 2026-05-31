@@ -34,7 +34,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Experiment 1 single-dataset pipeline with fast feature selection")
     parser.add_argument("--dataset-path", type=str, required=True, help="Path to CSV or ARFF dataset")
     parser.add_argument("--target-col", type=str, default=None, help="Target column name (defaults to last column)")
-    parser.add_argument("--dataset-name", type=str, default="New Dataset", help="Dataset label used in outputs")
+    parser.add_argument(
+        "--dataset-name",
+        type=str,
+        default="Allstate Claims Severity",
+        help="Dataset label used in outputs",
+    )
     parser.add_argument("--quick", action="store_true", help="Run quick mode: 2 folds x 2 repeats")
     parser.add_argument(
         "--step",

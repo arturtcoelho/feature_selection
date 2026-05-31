@@ -1,31 +1,45 @@
 \chapter{Introduction}
 
-\section{Context or Scope}
+Machine learning has transformed how organizations extract value from data, enabling predictive models that automate decisions in domains ranging from financial risk assessment to industrial process optimization. Among the many tasks addressed by machine learning, regression---the prediction of continuous outcomes---remains fundamental. Whether estimating insurance claim costs, forecasting energy demand, or predicting material properties, regression models serve as the backbone of quantitative decision support systems.
 
-Describe the context and scope of the project.
+As datasets grow in both volume and dimensionality, practitioners face an increasingly common challenge: determining which input variables actually contribute to accurate predictions. High-dimensional datasets may contain hundreds or thousands of features, yet only a subset typically carries meaningful predictive signal. The remaining features introduce noise, increase computational burden, and complicate model interpretation. Feature selection addresses this challenge by identifying and retaining only the most informative variables before or during model training.
 
-\section{Additional Section}
+\section{Context and Motivation}
 
-Add the required subsection content here.
+The importance of feature selection extends beyond mere dimensionality reduction. Effective selection can improve generalization by reducing overfitting, decrease training and inference time, lower storage requirements, and---perhaps most valuable in practice---produce models that are easier to explain and maintain. In regulated industries or high-stakes applications, the ability to articulate why a model uses specific inputs is often as important as the accuracy of its predictions.
 
-\section{Justification}
+Traditional feature selection methods fall into three categories: filter methods that rank features by statistical criteria independently of the model, wrapper methods that evaluate subsets through iterative model training, and embedded methods where selection occurs as part of the learning algorithm itself. Each approach involves trade-offs between computational cost, model dependency, and theoretical guarantees.
 
-Explain why this project is important.
+In recent years, model interpretability tools have gained prominence, with SHAP (SHapley Additive exPlanations) emerging as a particularly influential framework. SHAP provides theoretically grounded feature attributions derived from cooperative game theory, offering both local explanations for individual predictions and global importance rankings across datasets. While SHAP is primarily designed for post-hoc explanation, its global importance scores can naturally be repurposed for feature selection. This raises a practical question: does SHAP-based selection offer advantages over established methods, or does its explanatory elegance come without corresponding gains in predictive utility?
+
+\section{Problem Statement}
+
+Despite SHAP's widespread adoption for model interpretation, its effectiveness as a feature selection mechanism remains underexplored in systematic comparisons. Existing literature often showcases SHAP in explanatory contexts without rigorous benchmarking against traditional selectors across diverse datasets and model families. Furthermore, SHAP computation---even with efficient implementations like TreeExplainer---incurs non-trivial runtime costs that may not be justified if simpler methods achieve comparable results.
+
+This gap creates uncertainty for practitioners who must choose feature selection strategies under real-world constraints. Without clear evidence on when SHAP-based selection provides meaningful benefits, organizations risk either underutilizing a powerful tool or investing computational resources in approaches that offer little marginal advantage.
 
 \section{Objectives}
 
 \subsection{General Objective}
 
-State the overall objective.
+This thesis aims to evaluate SHAP-based feature selection for tabular regression problems, comparing its predictive effectiveness, computational cost, and selection stability against established alternatives across multiple datasets and model families.
 
 \subsection{Specific Objectives}
 
-\begin{itemize}
-    \item Specific objective 1.
-    \item Specific objective 2.
-    \item Specific objective 3.
-\end{itemize}
+\begin{enumerate}
+    \item Conduct a broad benchmark comparing mutual information, recursive feature elimination, tree-based importance, and SHAP-based selection across four datasets and three model types.
+    \item Quantify the trade-offs between prediction error reduction and execution time for each strategy under varying feature retention levels.
+    \item Measure selection stability---the consistency of chosen feature subsets across repeated experimental runs---to assess method robustness.
+    \item Perform a focused evaluation using XGBoost on selected datasets, testing custom SHAP recursive elimination and hybrid strategies.
+    \item Synthesize practical recommendations for choosing feature selection methods in applied regression projects.
+\end{enumerate}
 
-\section{Project Limits}
+\section{Scope and Limitations}
 
-Define the boundaries and limitations of the project.
+This work is positioned as an applied master's thesis: the goal is not to propose novel algorithms, but to produce a structured, reproducible comparison that yields actionable guidance. The study is limited to supervised tabular regression, four datasets in the broad screening stage, two datasets in the deep-dive stage, and the specific model families and selection strategies implemented in the experimental pipeline.
+
+The analysis does not claim exhaustive coverage of all explainability approaches, all regression estimators, or all hyperparameter optimization schemes. Results should be interpreted as context-sensitive empirical findings applicable to similar tabular regression settings, rather than universal claims. Detailed references are deferred to a subsequent revision pass.
+
+\section{Document Structure}
+
+The remainder of this thesis is organized as follows. Chapter~2 reviews the current state of regression modeling, feature selection techniques, and SHAP methodology, establishing the technical foundation for the experiments. Chapter~3 formalizes the research hypotheses and describes the experimental design, including the two-stage approach with broad screening followed by focused evaluation. Chapter~4 presents the methodology in detail and reports the experimental results, with emphasis on performance, stability, and cost trade-offs. Chapter~5 concludes with a synthesis of findings, practical recommendations, and directions for future work.
