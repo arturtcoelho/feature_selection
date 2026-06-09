@@ -18,6 +18,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{float}
+\usepackage{pdfpages}
 
 % Reduce space before chapter titles
 \titleformat{\chapter}[display]
@@ -34,45 +35,8 @@
 
 \begin{document}
 
-\begin{titlepage}
-    \begin{center}
-        \vspace*{1cm}
-
-        \Huge
-        \textbf{A Comparative Analysis on Feature Selection for Regression Models: Comparing SHAP-Based Methods with Traditional Approaches}\\
-
-        \vspace{0.5cm}
-
-        \LARGE
-        Master's Thesis
-
-        \vspace{3cm}
-
-        \textbf{Student:}\\
-        Artur Temporal Coelho\\
-
-        \vspace{0.5cm}
-
-        \textbf{Supervisor:}\\
-        Jesús Javier Rodríguez Sala\\
-
-        \vspace{1cm}
-
-        \textbf{Institution:}\\
-        Universidad Miguel Hernandez\\
-
-        \vspace{0.5cm}
-
-        \textbf{Program:}\\
-        Máster Universitario en Estadística Computacional y Ciencia de Datos para la Toma de Decisiones
-
-        \vfill
-
-        \Large
-        2026
-
-    \end{center}
-\end{titlepage}
+% Include university cover pages from PDF template
+\includepdf[pages=1,fitpaper]{portada.pdf}
 
 \pagenumbering{roman}
 
@@ -81,6 +45,7 @@
 \textbf{Acknowledgements}
 \end{center}
 
+I would like to express my gratitude to my friends and family for their encouragement on this journey. To my parents, for their unwavering belief. To my friends, for providing company in times of need. This thesis would not have been possible without you. And special thanks to my partner for being with me through the entire process.
 
 \newpage
 
